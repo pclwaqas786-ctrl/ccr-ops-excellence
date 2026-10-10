@@ -1,7 +1,10 @@
-"""Ops Excellence Dash Board — standard format (separate page).
+"""Ops Excellence Dash Board — company standard format (separate app).
 
-Executive summary view pulling live data from the same OEE_Data tab
-of the company Google Sheet (via the baked data.json).
+Implements the Standard_Dashboard format:
+  OEE Data Analysis (24hr / MTD / YTD grids)
+  24 Hrs Summary | MTD / YTD Summary | General Information & KPI
+Live data from the OEE_Data tab of the Google Sheet (via baked data.json).
+Sections without sheet data are marked clearly.
 """
 import json
 import re
@@ -17,6 +20,8 @@ BLUE = "#1f4e78"
 GREEN = "#2e7d32"
 AMBER = "#c77700"
 RED = "#c0392b"
+TEAL = "#0f766e"
+PURPLE = "#6d28d9"
 
 st.set_page_config(page_title="Ops Excellence Dash Board", layout="wide")
 
@@ -141,7 +146,6 @@ def pct(x):
 
 
 def fy_label():
-    """Pakistan FY (Jul-Jun), e.g. Oct 2026 -> 'FY 2026-27'."""
     p5 = datetime.timezone(datetime.timedelta(hours=5))
     now = datetime.datetime.now(p5)
     if now.month >= 7:
@@ -157,6 +161,29 @@ def kpi_card(lbl, val, note="", ac=BLUE):
         '</div>', unsafe_allow_html=True)
 
 
+def na_card(lbl, note="Not tracked in the Google Sheet yet"):
+    st.markdown(
+        f'<div class="kpi-card na-card">'
+        f'<div class="lbl">{lbl}</div>'
+        f'<div class="na-val">—</div>'
+        f'<div class="note">{note}</div></div>', unsafe_allow_html=True)
+
+
+def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
+    fig = go.Figure(go.Bar(
+        x=labels, y=values, marker_color=color,
+        text=[f"{v:,.1f}{suffix}" for v in values],
+        textposition="outside", textfont=dict(size=11),
+        hovertemplate="%{x}: %{y:,.1f}" + suffix + "<extra></extra>"))
+    kw = dict(title=dict(text=title, font=dict(size=12)),
+              height=230, margin=dict(l=5, r=5, t=35, b=5))
+    if hl:
+        kw["shapes"] = [dict(type="rect", xref="paper", yref="paper", x0=0, y0=0,
+                             x1=1, y1=1, line=dict(color="#eab308", width=3))]
+    fig.update_layout(**kw)
+    st.plotly_chart(fig, use_container_width=True, key=key)
+
+
 # ------------------------------------------------------------------ UI ----
 st.markdown("""
 <style>
@@ -165,8 +192,12 @@ st.markdown("""
   .kpi-card .lbl { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:.6px; }
   .kpi-card .val { font-size:28px; font-weight:700; color:#1c2733; }
   .kpi-card .note { font-size:12px; color:#64748b; }
+  .na-card { border-left-color:#cbd5e1 !important; background:#f8fafc !important; }
+  .na-card .na-val { font-size:28px; font-weight:700; color:#94a3b8; }
   h1, h2, h3 { color:#1c2733; }
   .title-accent { height:4px; border-radius:2px; margin:-6px 0 14px 0; background:#1f4e78; }
+  .section-band { background:#1f4e78; color:#fff; border-radius:6px; padding:8px 14px;
+    font-weight:700; margin:18px 0 10px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -188,81 +219,196 @@ if st.button("↻ Refresh data"):
     st.rerun()
 
 FY = fy_label()
-
-# ---- monthly performance ----
-st.subheader("Monthly Performance")
-mp, ma = mtd.get("plan", 0), mtd.get("ach", 0)
-mpct = ma / mp if mp else 0
-mc = st.columns(4)
-for col, (lbl, val, note, ac) in zip(mc, [
-        ("Monthly Target (MT)", f"{mp:,.1f}", "Value tons", BLUE),
-        ("Monthly Achieved (MT)", f"{ma:,.1f}", f"{mpct * 100:.1f}% of target", GREEN),
-        ("Balance (MT)", f"{mp - ma:,.1f}", "remaining to target", "#b45309"),
-        ("% of Target", f"{mpct * 100:.1f}%", "achieved / target", "#6d28d9"),
-]):
-    with col:
-        kpi_card(lbl, val, note, ac)
-st.progress(min(max(mpct, 0.0), 1.0))
-st.divider()
-
-# ---- yearly performance ----
-st.subheader(f"Yearly Performance ({FY})")
 tgt = M["target"] or 4800
 ytd = sum(m["prod"] for m in M["trend"]) if M["trend"] else 0
-ypct = ytd / tgt if tgt else 0
-yc = st.columns(4)
-for col, (lbl, val, note, ac) in zip(yc, [
-        ("Yearly Target (MT)", f"{tgt:,.0f}", "Value tons", BLUE),
-        ("YTD Achieved (MT)", f"{ytd:,.0f}", f"{ypct * 100:.1f}% of target", GREEN),
-        ("Balance (MT)", f"{tgt - ytd:,.0f}", "remaining to target", "#b45309"),
-        ("% of Target", f"{ypct * 100:.1f}%", "achieved / target", "#6d28d9"),
-]):
-    with col:
-        kpi_card(lbl, val, note, ac)
-st.progress(min(max(ypct, 0.0), 1.0))
-st.divider()
 
-# ---- OEE summary ----
-st.subheader("OEE Summary (MTD)")
-oc = st.columns(4)
-for col, (lbl, val, ac) in zip(oc, [
-        ("Availability", pct(mtd.get("availP", 0)), "#0f766e"),
-        ("Performance", pct(mtd.get("perfP", 0)), "#c2410c"),
-        ("Quality", pct(mtd.get("qualP", 0)), "#4d7c0f"),
-        ("OEE", pct(mtd.get("oeeP", 0)), BLUE),
-]):
-    with col:
-        kpi_card(lbl, val, "", ac)
-st.divider()
+# ---- targets header (as per standard format) ----
+tc = st.columns(2)
+with tc[0]:
+    kpi_card("Monthly Target", f"{mtd.get('plan', 0):,.1f}", "Value tons", BLUE)
+with tc[1]:
+    kpi_card("Yearly Target", f"{tgt:,.0f}", "Value tons", BLUE)
 
-# ---- month-wise production ----
-if M["trend"]:
-    st.subheader(f"Month-wise Production ({FY})")
-    ms = [m["m"] for m in M["trend"]]
-    ps = [m["prod"] for m in M["trend"]]
-    fig = go.Figure(go.Bar(x=ms, y=ps, marker_color=BLUE,
-                           text=[f"{v:,.0f}" for v in ps],
-                           textposition="outside", textfont=dict(size=12),
-                           hovertemplate="%{x}: %{y:,.1f} MT<extra></extra>"))
-    fig.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10),
-                      yaxis_title="MT")
-    st.plotly_chart(fig, use_container_width=True, key="ops-monthly")
-    st.caption(f"YTD: {ytd:,.0f} MT / {tgt:,.0f} MT target ({ypct * 100:.1f}%)"
-               f" — balance {tgt - ytd:,.0f} MT")
+# ================= OEE DATA ANALYSIS =================
+st.markdown('<div class="section-band">OEE Data Analysis</div>', unsafe_allow_html=True)
 
-# ---- shift-wise production ----
-if M["shift"]:
-    st.subheader("Shift-wise Production (MTD)")
-    sns = [s["name"] for s in M["shift"]]
-    svs = [s["prod"] for s in M["shift"]]
-    fig = go.Figure(go.Bar(x=svs, y=sns, orientation="h",
-                           marker_color=[BLUE, "#5b9bd5"],
-                           text=[f"{v:.1f} MT" for v in svs],
-                           textposition="outside", textfont=dict(size=13),
-                           hovertemplate="%{y}: %{x:.1f} MT<extra></extra>"))
-    fig.update_layout(height=220, margin=dict(l=10, r=60, t=10, b=10),
-                      xaxis_title="MT")
-    st.plotly_chart(fig, use_container_width=True, key="ops-shift")
+real_days = [d for d in M["daily"] if not d.get("ach_blank")]
+last2 = real_days[-2:] if len(real_days) >= 2 else real_days
+d2lbl = [d["date"].strftime("%d-%b") for d in last2]
+
+# ---- 24 hr row ----
+st.markdown("#### 24 Hr")
+if last2:
+    r1 = st.columns(3)
+    with r1[0]:
+        mini_bar(d2lbl, [d["oee"] * 100 for d in last2],
+                 "24 Hr OEE", BLUE, "a24-oee")
+    with r1[1]:
+        mini_bar(d2lbl, [d["perfP"] * 100 for d in last2],
+                 "24 Hr Efficiency", GREEN, "a24-eff")
+    with r1[2]:
+        mini_bar(d2lbl, [d["qualP"] * 100 for d in last2],
+                 "24 Hr Quality", TEAL, "a24-qual")
+    r2 = st.columns(3)
+    with r2[0]:
+        mini_bar(d2lbl, [d["availP"] * 100 for d in last2],
+                 "24 Hr Availability", PURPLE, "a24-avail")
+    with r2[1]:
+        mini_bar(d2lbl, [d["ach"] for d in last2],
+                 "24 Hr Production", AMBER, "a24-prod", suffix=" MT", hl=True)
+    with r2[2]:
+        kpi_card("24 Hr Tonnage", f"{last2[-1]['ach']:,.1f}",
+                 f"MT · {last2[-1]['date'].strftime('%d-%b-%Y')}", AMBER)
+else:
+    st.info("No finalized daily data in the sheet yet.")
+
+# ---- MTD row ----
+st.markdown("#### MTD")
+m1 = st.columns(3)
+with m1[0]:
+    kpi_card("MTD OEE", pct(mtd.get("oeeP", 0)), "Oct-26 (only month with OEE data)", BLUE)
+with m1[1]:
+    kpi_card("MTD Efficiency", pct(mtd.get("perfP", 0)), "Oct-26", GREEN)
+with m1[2]:
+    kpi_card("MTD Quality", pct(mtd.get("qualP", 0)), "Oct-26", TEAL)
+m2 = st.columns(3)
+with m2[0]:
+    kpi_card("MTD Availability", pct(mtd.get("availP", 0)), "Oct-26", PURPLE)
+with m2[1]:
+    if len(M["trend"]) >= 2:
+        ms2 = [m["m"] for m in M["trend"][-2:]]
+        ps2 = [m["prod"] for m in M["trend"][-2:]]
+        mini_bar(ms2, ps2, "MTD Production (last 2 months)", AMBER,
+                 "amtd-prod", suffix=" MT", hl=True)
+    else:
+        kpi_card("MTD Production", f"{mtd.get('ach', 0):,.1f}", "MT", AMBER)
+with m2[2]:
+    kpi_card("MTD Tonnage", f"{mtd.get('ach', 0):,.1f}", "MT", AMBER)
+st.caption("OEE breakdown available from Oct-26 only — earlier months have production totals, no OEE data.")
+
+# ---- YTD row ----
+st.markdown(f"#### YTD ({FY})")
+y1 = st.columns(3)
+with y1[0]:
+    kpi_card("YTD OEE", pct(mtd.get("oeeP", 0)),
+             "Oct-26 MTD as reference (no multi-year OEE history in sheet)", BLUE)
+with y1[1]:
+    kpi_card("YTD Efficiency", pct(mtd.get("perfP", 0)), "Oct-26 MTD as reference", GREEN)
+with y1[2]:
+    kpi_card("YTD Quality", pct(mtd.get("qualP", 0)), "Oct-26 MTD as reference", TEAL)
+y2 = st.columns(3)
+with y2[0]:
+    kpi_card("YTD Availability", pct(mtd.get("availP", 0)), "Oct-26 MTD as reference", PURPLE)
+with y2[1]:
+    if M["trend"]:
+        ms = [m["m"] for m in M["trend"]]
+        ps = [m["prod"] for m in M["trend"]]
+        mini_bar(ms, ps, f"YTD Production ({FY})", AMBER, "aytd-prod",
+                 suffix=" MT", hl=True)
+with y2[2]:
+    kpi_card("YTD Tonnage", f"{ytd:,.0f}", f"MT of {tgt:,.0f} MT target", AMBER)
+
+# ================= 24 HRS SUMMARY =================
+st.markdown('<div class="section-band">24 Hrs Summary</div>', unsafe_allow_html=True)
+if last2:
+    L = last2[-1]
+    st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
+    s1 = st.columns(3)
+    with s1[0]:
+        if M["shift"]:
+            sns = [s["name"] for s in M["shift"]]
+            svs = [s["prod"] for s in M["shift"]]
+            mini_bar(sns, svs, "Shift-wise Production (MTD)", BLUE,
+                     "s-shift-prod", suffix=" MT")
+        else:
+            na_card("Shift-wise Production")
+    with s1[1]:
+        na_card("Shift-wise OEE", "Shift-wise OEE not tracked in the Google Sheet yet")
+    with s1[2]:
+        na_card("Shift-wise Downtime", "Shift-wise downtime not tracked in the Google Sheet yet")
+    s2 = st.columns(3)
+    with s2[0]:
+        na_card("Shift-wise Breakdown", "Shift-wise breakdown not tracked in the Google Sheet yet")
+    with s2[1]:
+        if M["shift"]:
+            tot = sum(s["prod"] for s in M["shift"])
+            rows = "".join(
+                f"<tr><td>{s['name']}</td><td style='text-align:right'>{s['prod']:,.1f}</td></tr>"
+                for s in M["shift"])
+            st.markdown(
+                f"**Production Report — Shift-wise (MTD)**<br>"
+                f"<table style='width:100%'><tr><th>Shift</th>"
+                f"<th style='text-align:right'>Production (MT)</th></tr>{rows}"
+                f"<tr><td><b>Total</b></td><td style='text-align:right'><b>{tot:,.1f}</b></td></tr>"
+                f"</table>", unsafe_allow_html=True)
+        else:
+            na_card("Production Report — Shift-wise")
+    with s2[2]:
+        kpi_card("Day Production", f"{L['ach']:,.1f}",
+                 f"MT · plan {L['plan']:,.1f} MT "
+                 f"({(L['ach'] / L['plan'] * 100 if L['plan'] else 0):.0f}% of plan)",
+                 AMBER)
+
+# ================= MTD / YTD SUMMARY =================
+st.markdown('<div class="section-band">MTD / YTD Summary</div>', unsafe_allow_html=True)
+if real_days:
+    xs = [d["date"].strftime("%d-%b") for d in real_days]
+    u1 = st.columns(2)
+    with u1[0]:
+        fig = go.Figure(go.Bar(
+            x=xs, y=[d["oee"] * 100 for d in real_days], marker_color=BLUE,
+            text=[f"{d['oee'] * 100:.1f}%" for d in real_days],
+            textposition="outside", textfont=dict(size=10)))
+        fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(size=13)),
+                          height=300, margin=dict(l=5, r=5, t=40, b=5))
+        st.plotly_chart(fig, use_container_width=True, key="u-oee")
+    with u1[1]:
+        fig = go.Figure(go.Bar(
+            x=xs, y=[d["ach"] for d in real_days], marker_color=AMBER,
+            text=[f"{d['ach']:.1f}" for d in real_days],
+            textposition="outside", textfont=dict(size=10)))
+        fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(size=13)),
+                          height=300, margin=dict(l=5, r=5, t=40, b=5))
+        st.plotly_chart(fig, use_container_width=True, key="u-prod")
+    u2 = st.columns(2)
+    with u2[0]:
+        fig = go.Figure(go.Bar(
+            x=xs, y=[d["dt"] / 60 for d in real_days], marker_color=RED,
+            text=[f"{d['dt'] / 60:.1f}h" for d in real_days],
+            textposition="outside", textfont=dict(size=10)))
+        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(size=13)),
+                          height=300, margin=dict(l=5, r=5, t=40, b=5))
+        st.plotly_chart(fig, use_container_width=True, key="u-dt")
+    with u2[1]:
+        by_oee = sorted(real_days, key=lambda d: d["oee"], reverse=True)
+        best = by_oee[:3]
+        worst = by_oee[-3:][::-1]
+        bt = "<br>".join(
+            f"{d['date'].strftime('%d-%b')}: {d['oee'] * 100:.1f}% OEE, {d['ach']:.1f} MT"
+            for d in best)
+        wt = "<br>".join(
+            f"{d['date'].strftime('%d-%b')}: {d['oee'] * 100:.1f}% OEE, {d['ach']:.1f} MT"
+            for d in worst)
+        st.markdown(f"**Best 3 days (by OEE)**<br>{bt}", unsafe_allow_html=True)
+        st.markdown(f"**Weakest 3 days (by OEE)**<br>{wt}", unsafe_allow_html=True)
+        st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
+
+# ================= GENERAL INFORMATION & KPI =================
+st.markdown('<div class="section-band">General Information & KPI</div>', unsafe_allow_html=True)
+g1 = st.columns(3)
+with g1[0]:
+    na_card("Wastage (Overall)")
+with g1[1]:
+    na_card("HSE Score (Month-wise)")
+with g1[2]:
+    na_card("Short Runs & Loss Report")
+g2 = st.columns(3)
+with g2[0]:
+    na_card("Improvement Activity")
+with g2[1]:
+    na_card("Kaizen Projects (Month-wise)")
+with g2[2]:
+    na_card("Cost Saving Projects (Month-wise)")
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
