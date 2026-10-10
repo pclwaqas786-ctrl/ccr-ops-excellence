@@ -89,7 +89,7 @@ def parse_model(rows):
          "target": 0.0, "shift": []}
     section = None
     for r in rows:
-        r = list(r) + [None] * (14 - len(r))
+        r = list(r) + [None] * (16 - len(r))
         a = r[0]
         lab = str(r[1] if r[1] is not None else "").strip()
         if a not in (None, "") and str(a).strip().replace(".", "", 1).isdigit() \
@@ -100,7 +100,8 @@ def parse_model(rows):
                 "availP": num(r[5]), "plan": num(r[6]), "ach": num(r[7]),
                 "perfP": num(r[8]), "good": num(r[9]), "qualP": num(r[10]),
                 "oee": num(r[11]), "status": str(r[12] or ""),
-                "ach_blank": str(r[7] or "").strip() == ""})
+                "ach_blank": str(r[7] or "").strip() == "",
+                "shiftA": num(r[14]), "shiftB": num(r[15])})
             continue
         if re.match(r"^MTD TOTAL", lab, re.I):
             M["mtd"] = {"avail": num(r[2]), "dt": num(r[3]), "run": num(r[4]),
@@ -353,6 +354,25 @@ if last2:
 st.markdown('<div class="section-band">MTD / YTD Summary</div>', unsafe_allow_html=True)
 if real_days:
     xs = [d["date"].strftime("%d-%b") for d in real_days]
+    # daily shift-wise production (Shift A vs Shift B)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=xs, y=[d.get("shiftA", 0) for d in real_days], name="Shift A",
+        marker_color=BLUE,
+        text=[f"{d.get('shiftA', 0):.1f}" for d in real_days],
+        textposition="outside", textfont=dict(size=10),
+        hovertemplate="%{x}<br>Shift A: %{y:.1f} MT<extra></extra>"))
+    fig.add_trace(go.Bar(
+        x=xs, y=[d.get("shiftB", 0) for d in real_days], name="Shift B",
+        marker_color="#5b9bd5",
+        text=[f"{d.get('shiftB', 0):.1f}" for d in real_days],
+        textposition="outside", textfont=dict(size=10),
+        hovertemplate="%{x}<br>Shift B: %{y:.1f} MT<extra></extra>"))
+    fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(size=13)),
+                      barmode="group", height=340,
+                      margin=dict(l=5, r=5, t=40, b=5),
+                      legend=dict(orientation="h", y=1.08))
+    st.plotly_chart(fig, use_container_width=True, key="u-shift")
     u1 = st.columns(2)
     with u1[0]:
         fig = go.Figure(go.Bar(
