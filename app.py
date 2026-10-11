@@ -316,13 +316,23 @@ if last2:
     st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
     s1 = st.columns(3)
     with s1[0]:
-        if M["shift"]:
-            sns = [s["name"] for s in M["shift"]]
-            svs = [s["prod"] for s in M["shift"]]
-            mini_bar(sns, svs, "Shift-wise Production (MTD)", BLUE,
-                     "s-shift-prod", suffix=" MT")
-        else:
-            na_card("Shift-wise Production")
+        sa = sum(d.get("shiftA", 0) for d in M["daily"])
+        sb = sum(d.get("shiftB", 0) for d in M["daily"])
+        d0 = M["daily"][0]["date"].strftime("%d-%b")
+        d1 = M["daily"][-1]["date"].strftime("%d-%b")
+        fig = go.Figure(go.Pie(
+            labels=["Shift A", "Shift B"], values=[sa, sb], hole=0.55,
+            marker_colors=[BLUE, "#5b9bd5"],
+            textinfo="label+percent", textfont=dict(size=12),
+            hovertemplate="%{label}: %{value:.1f} MT (%{percent})<extra></extra>"))
+        fig.update_layout(
+            title=dict(text="Shift-wise Production (MTD)", font=dict(size=12)),
+            height=250, margin=dict(l=5, r=5, t=35, b=5),
+            legend=dict(orientation="h", y=-0.05),
+            annotations=[dict(text=f"{sa + sb:.1f}<br>MT", x=0.5, y=0.5,
+                              font_size=16, showarrow=False)])
+        st.plotly_chart(fig, use_container_width=True, key="s-shift-prod")
+        st.caption(f"Sum of daily entries — {d0} to {d1}")
     with s1[1]:
         na_card("Shift-wise OEE", "Shift-wise OEE not tracked in the Google Sheet yet")
     with s1[2]:
@@ -331,19 +341,20 @@ if last2:
     with s2[0]:
         na_card("Shift-wise Breakdown", "Shift-wise breakdown not tracked in the Google Sheet yet")
     with s2[1]:
-        if M["shift"]:
-            tot = sum(s["prod"] for s in M["shift"])
-            rows = "".join(
-                f"<tr><td>{s['name']}</td><td style='text-align:right'>{s['prod']:,.1f}</td></tr>"
-                for s in M["shift"])
-            st.markdown(
-                f"**Production Report — Shift-wise (MTD)**<br>"
-                f"<table style='width:100%'><tr><th>Shift</th>"
-                f"<th style='text-align:right'>Production (MT)</th></tr>{rows}"
-                f"<tr><td><b>Total</b></td><td style='text-align:right'><b>{tot:,.1f}</b></td></tr>"
-                f"</table>", unsafe_allow_html=True)
-        else:
-            na_card("Production Report — Shift-wise")
+        sa = sum(d.get("shiftA", 0) for d in M["daily"])
+        sb = sum(d.get("shiftB", 0) for d in M["daily"])
+        d0 = M["daily"][0]["date"].strftime("%d-%b")
+        d1 = M["daily"][-1]["date"].strftime("%d-%b")
+        st.markdown(
+            f"**Production Report — Shift-wise (MTD)**<br>"
+            f"<table style='width:100%'><tr><th>Shift</th>"
+            f"<th style='text-align:right'>Production (MT)</th></tr>"
+            f"<tr><td>Shift A</td><td style='text-align:right'>{sa:,.1f}</td></tr>"
+            f"<tr><td>Shift B</td><td style='text-align:right'>{sb:,.1f}</td></tr>"
+            f"<tr><td><b>Total</b></td><td style='text-align:right'><b>{sa + sb:,.1f}</b></td></tr>"
+            f"</table>"
+            f"<div style='font-size:12px;color:#64748b'>Sum of daily entries — {d0} to {d1}</div>",
+            unsafe_allow_html=True)
     with s2[2]:
         kpi_card("Day Production", f"{L['ach']:,.1f}",
                  f"MT · plan {L['plan']:,.1f} MT "
