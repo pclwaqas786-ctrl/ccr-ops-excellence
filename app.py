@@ -2,7 +2,7 @@
 
 Implements the Standard_Dashboard format:
   OEE Data Analysis (24hr / MTD / YTD grids)
-  24 Hrs Summary | MTD / YTD Summary | General Information & KPI
+  24 Hrs Summary | MTD / YTD Summary
 Live data from the OEE_Data tab of the Google Sheet (via baked data.json).
 Sections without sheet data are marked clearly.
 """
@@ -423,23 +423,6 @@ if real_days:
         st.markdown(f"**Best 3 days (by OEE)**<br>{bt}", unsafe_allow_html=True)
         st.markdown(f"**Weakest 3 days (by OEE)**<br>{wt}", unsafe_allow_html=True)
         st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
-
-# ================= GENERAL INFORMATION & KPI =================
-st.markdown('<div class="section-band">General Information & KPI</div>', unsafe_allow_html=True)
-g1 = st.columns(3)
-with g1[0]:
-    na_card("Wastage (Overall)")
-with g1[1]:
-    na_card("HSE Score (Month-wise)")
-with g1[2]:
-    na_card("Short Runs & Loss Report")
-g2 = st.columns(3)
-with g2[0]:
-    na_card("Improvement Activity")
-with g2[1]:
-    na_card("Kaizen Projects (Month-wise)")
-with g2[2]:
-    na_card("Cost Saving Projects (Month-wise)")
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
