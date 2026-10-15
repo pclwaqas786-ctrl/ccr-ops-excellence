@@ -324,12 +324,12 @@ def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
 # ---- YTD row (template: 6 bar graphs, last 2 years) ----
 st.markdown(f"#### YTD ({FY})")
 moee = [m for m in trendY if m["oee"] > 0]
-mlbl = [m["m"] for m in moee]
+mlbl = [m["m"] for m in moee] or ["Oct-26"]
 _oee_bars("YTD",
-         [[m["oee"] * 100 for m in moee],
-          [m["perf"] * 100 for m in moee],
-          [m["qual"] * 100 for m in moee],
-          [m["avail"] * 100 for m in moee]],
+         [[m["oee"] * 100 for m in moee] or [mtd.get("oeeP", 0) * 100],
+          [m["perf"] * 100 for m in moee] or [mtd.get("perfP", 0) * 100],
+          [m["qual"] * 100 for m in moee] or [mtd.get("qualP", 0) * 100],
+          [m["avail"] * 100 for m in moee] or [mtd.get("availP", 0) * 100]],
          mlbl,
          tylbl, typrod, FY, ytd,
          ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
