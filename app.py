@@ -181,9 +181,9 @@ def mini_donut(title, value, prev_text, color, key):
                            sort=False, direction="clockwise"))
     fig.update_layout(
         title=dict(text=title, font=dict(size=13)),
-        annotations=[dict(text=f"{v:.1f}%", x=0.5, y=0.5,
-                          font_size=22, showarrow=False)],
-        height=210, margin=dict(l=10, r=10, t=40, b=10),
+        annotations=[dict(text=f"<b>{v:.1f}%</b>", x=0.5, y=0.5,
+                          font_size=26, showarrow=False)],
+        height=220, margin=dict(l=10, r=10, t=40, b=10),
         showlegend=False)
     st.plotly_chart(fig, use_container_width=True, key=key)
     if prev_text:
@@ -349,8 +349,49 @@ _oee_bars("MTD",
          ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
 
 # ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
+
+
+st.markdown(f"#### YTD ({FY})")
+moee = [m for m in trendY if m["oee"] > 0]
+mlbl = [m["m"] for m in moee] or ["Oct-26"]
+_oee_bars("YTD",
+         [[m["oee"] * 100 for m in moee] or [mtd.get("oeeP", 0) * 100],
+          [m["perf"] * 100 for m in moee] or [mtd.get("perfP", 0) * 100],
+          [m["qual"] * 100 for m in moee] or [mtd.get("qualP", 0) * 100],
+          [m["avail"] * 100 for m in moee] or [mtd.get("availP", 0) * 100]],
+         mlbl,
+         tylbl, typrod, FY, ytd,
+         ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
+st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
+
+# ---- MTD row (template: 6 bar graphs, last 2 months) ----
+st.markdown("#### MTD")
+m2oee = [m for m in trend2 if m["oee"] > 0]
+m2lbl = [m["m"] for m in m2oee] or ["Oct-26"]
+_oee_bars("MTD",
+         [[m["oee"] * 100 for m in m2oee] or [mtd.get("oeeP", 0) * 100],
+          [m["perf"] * 100 for m in m2oee] or [mtd.get("perfP", 0) * 100],
+          [m["qual"] * 100 for m in m2oee] or [mtd.get("qualP", 0) * 100],
+          [m["avail"] * 100 for m in m2oee] or [mtd.get("availP", 0) * 100]],
+         m2lbl,
+         t2lbl, t2prod, "Oct-26", mtd.get("ach", 0),
+         ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
+
+# ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
+    _yd = last2[-1]
+    _ypct = (_yd["ach"] / _yd["plan"] * 100) if _yd["plan"] else 0
+    sc = st.columns(4)
+    with sc[0]:
+        kpi_card("Date", _yd["date"].strftime("%d-%b-%Y"), "Yesterday", BLUE)
+    with sc[1]:
+        kpi_card("Target", f'{_yd["plan"]:.1f}', "MT", PURPLE)
+    with sc[2]:
+        kpi_card("Production", f'{_yd["ach"]:.1f}', "MT", AMBER)
+    with sc[3]:
+        kpi_card("Plan Achieved", f"{_ypct:.0f}%", "of target", GREEN)
+
     dcols = st.columns(4)
     _d = [("OEE", "oee", BLUE, "h24-oee"),
           ("Efficiency", "perfP", GREEN, "h24-eff"),
