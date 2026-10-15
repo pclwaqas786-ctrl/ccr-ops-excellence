@@ -322,62 +322,6 @@ def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
                  keys[5], suffix=" MT", hl=True)
 
 # ---- YTD row (template: 6 bar graphs, last 2 years) ----
-st.markdown(f"#### YTD ({FY})")
-moee = [m for m in trendY if m["oee"] > 0]
-mlbl = [m["m"] for m in moee] or ["Oct-26"]
-_oee_bars("YTD",
-         [[m["oee"] * 100 for m in moee] or [mtd.get("oeeP", 0) * 100],
-          [m["perf"] * 100 for m in moee] or [mtd.get("perfP", 0) * 100],
-          [m["qual"] * 100 for m in moee] or [mtd.get("qualP", 0) * 100],
-          [m["avail"] * 100 for m in moee] or [mtd.get("availP", 0) * 100]],
-         mlbl,
-         tylbl, typrod, FY, ytd,
-         ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
-st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
-
-# ---- MTD row (template: 6 bar graphs, last 2 months) ----
-st.markdown("#### MTD")
-m2oee = [m for m in trend2 if m["oee"] > 0]
-m2lbl = [m["m"] for m in m2oee] or ["Oct-26"]
-_oee_bars("MTD",
-         [[m["oee"] * 100 for m in m2oee] or [mtd.get("oeeP", 0) * 100],
-          [m["perf"] * 100 for m in m2oee] or [mtd.get("perfP", 0) * 100],
-          [m["qual"] * 100 for m in m2oee] or [mtd.get("qualP", 0) * 100],
-          [m["avail"] * 100 for m in m2oee] or [mtd.get("availP", 0) * 100]],
-         m2lbl,
-         t2lbl, t2prod, "Oct-26", mtd.get("ach", 0),
-         ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
-
-# ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
-
-
-st.markdown(f"#### YTD ({FY})")
-moee = [m for m in trendY if m["oee"] > 0]
-mlbl = [m["m"] for m in moee] or ["Oct-26"]
-_oee_bars("YTD",
-         [[m["oee"] * 100 for m in moee] or [mtd.get("oeeP", 0) * 100],
-          [m["perf"] * 100 for m in moee] or [mtd.get("perfP", 0) * 100],
-          [m["qual"] * 100 for m in moee] or [mtd.get("qualP", 0) * 100],
-          [m["avail"] * 100 for m in moee] or [mtd.get("availP", 0) * 100]],
-         mlbl,
-         tylbl, typrod, FY, ytd,
-         ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
-st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
-
-# ---- MTD row (template: 6 bar graphs, last 2 months) ----
-st.markdown("#### MTD")
-m2oee = [m for m in trend2 if m["oee"] > 0]
-m2lbl = [m["m"] for m in m2oee] or ["Oct-26"]
-_oee_bars("MTD",
-         [[m["oee"] * 100 for m in m2oee] or [mtd.get("oeeP", 0) * 100],
-          [m["perf"] * 100 for m in m2oee] or [mtd.get("perfP", 0) * 100],
-          [m["qual"] * 100 for m in m2oee] or [mtd.get("qualP", 0) * 100],
-          [m["avail"] * 100 for m in m2oee] or [mtd.get("availP", 0) * 100]],
-         m2lbl,
-         t2lbl, t2prod, "Oct-26", mtd.get("ach", 0),
-         ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
-
-# ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
     _yd = last2[-1]
@@ -411,6 +355,37 @@ if last2:
 else:
     st.info("No finalized daily data in the sheet yet.")
 
+
+st.markdown("#### MTD")
+m2oee = [m for m in trend2 if m["oee"] > 0]
+m2lbl = [m["m"] for m in m2oee] or ["Oct-26"]
+_oee_bars("MTD",
+         [[m["oee"] * 100 for m in m2oee] or [mtd.get("oeeP", 0) * 100],
+          [m["perf"] * 100 for m in m2oee] or [mtd.get("perfP", 0) * 100],
+          [m["qual"] * 100 for m in m2oee] or [mtd.get("qualP", 0) * 100],
+          [m["avail"] * 100 for m in m2oee] or [mtd.get("availP", 0) * 100]],
+         m2lbl,
+         t2lbl, t2prod, "Oct-26", mtd.get("ach", 0),
+         ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
+
+# ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
+
+
+
+st.markdown(f"#### YTD ({FY})")
+moee = [m for m in trendY if m["oee"] > 0]
+mlbl = [m["m"] for m in moee] or ["Oct-26"]
+_oee_bars("YTD",
+         [[m["oee"] * 100 for m in moee] or [mtd.get("oeeP", 0) * 100],
+          [m["perf"] * 100 for m in moee] or [mtd.get("perfP", 0) * 100],
+          [m["qual"] * 100 for m in moee] or [mtd.get("qualP", 0) * 100],
+          [m["avail"] * 100 for m in moee] or [mtd.get("availP", 0) * 100]],
+         mlbl,
+         tylbl, typrod, FY, ytd,
+         ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
+st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
+
+# ---- MTD row (template: 6 bar graphs, last 2 months) ----
 # ================= MTD / YTD SUMMARY =================
 st.markdown('<div class="section-band">MTD / YTD Summary</div>', unsafe_allow_html=True)
 if real_days:
