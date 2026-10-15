@@ -202,8 +202,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Ops Excellence Dash Board")
-st.markdown('<div class="title-accent"></div>', unsafe_allow_html=True)
+st.markdown("""
+<div style="background:#f5a623; border-radius:8px; padding:14px 18px; margin-bottom:6px;">
+<div style="font-size:24px; font-weight:800; color:#1c2733; text-align:center;">Ops Excellence Dash Board</div>
+</div>
+""", unsafe_allow_html=True)
 
 try:
     data = fetch_sheet()
@@ -237,10 +240,10 @@ real_days = [d for d in M["daily"] if not d.get("ach_blank")]
 last2 = real_days[-2:] if len(real_days) >= 2 else real_days
 d2lbl = [d["date"].strftime("%d-%b") for d in last2]
 
-# ---- 24 hr row ----
+# ---- 24 hr row (template: 4 charts, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
-    r1 = st.columns(3)
+    r1 = st.columns(4)
     with r1[0]:
         mini_bar(d2lbl, [d["oee"] * 100 for d in last2],
                  "24 Hr OEE", BLUE, "a24-oee")
@@ -250,16 +253,9 @@ if last2:
     with r1[2]:
         mini_bar(d2lbl, [d["qualP"] * 100 for d in last2],
                  "24 Hr Quality", TEAL, "a24-qual")
-    r2 = st.columns(3)
-    with r2[0]:
+    with r1[3]:
         mini_bar(d2lbl, [d["availP"] * 100 for d in last2],
                  "24 Hr Availability", PURPLE, "a24-avail")
-    with r2[1]:
-        mini_bar(d2lbl, [d["ach"] for d in last2],
-                 "24 Hr Production", AMBER, "a24-prod", suffix=" MT", hl=True)
-    with r2[2]:
-        kpi_card("24 Hr Tonnage", f"{last2[-1]['ach']:,.1f}",
-                 f"MT · {last2[-1]['date'].strftime('%d-%b-%Y')}", AMBER)
 else:
     st.info("No finalized daily data in the sheet yet.")
 
@@ -314,6 +310,10 @@ st.markdown('<div class="section-band">24 Hrs Summary</div>', unsafe_allow_html=
 if last2:
     L = last2[-1]
     st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
+    # losses time (template: "only add losses time")
+    kpi_card("Losses Time (24 Hr)", f"{L['dt'] / 60:.1f}",
+             f"hrs downtime · run {L['run'] / 60:.1f} hrs / available {L['avail'] / 60:.1f} hrs",
+             "#b91c1c")
     s1 = st.columns(3)
     with s1[0]:
         sa = sum(d.get("shiftA", 0) for d in M["daily"])
