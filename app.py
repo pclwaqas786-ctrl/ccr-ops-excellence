@@ -229,9 +229,9 @@ ytd = sum(m["prod"] for m in M["trend"]) if M["trend"] else 0
 # ---- targets header (as per standard format) ----
 tc = st.columns(2)
 with tc[0]:
-    kpi_card("Monthly Target", f"{mtd.get('plan', 0):,.1f}", "Value tons", BLUE)
-with tc[1]:
     kpi_card("Yearly Target", f"{tgt:,.0f}", "Value tons", BLUE)
+with tc[1]:
+    kpi_card("Monthly Target", f"{mtd.get('plan', 0):,.1f}", "Value tons", BLUE)
 
 # ================= OEE DATA ANALYSIS =================
 st.markdown('<div class="section-band">OEE Data Analysis</div>', unsafe_allow_html=True)
@@ -240,24 +240,28 @@ real_days = [d for d in M["daily"] if not d.get("ach_blank")]
 last2 = real_days[-2:] if len(real_days) >= 2 else real_days
 d2lbl = [d["date"].strftime("%d-%b") for d in last2]
 
-# ---- 24 hr row (template: 4 charts, last 2 days) ----
-st.markdown("#### 24 Hr")
-if last2:
-    r1 = st.columns(4)
-    with r1[0]:
-        mini_bar(d2lbl, [d["oee"] * 100 for d in last2],
-                 "24 Hr OEE", BLUE, "a24-oee")
-    with r1[1]:
-        mini_bar(d2lbl, [d["perfP"] * 100 for d in last2],
-                 "24 Hr Efficiency", GREEN, "a24-eff")
-    with r1[2]:
-        mini_bar(d2lbl, [d["qualP"] * 100 for d in last2],
-                 "24 Hr Quality", TEAL, "a24-qual")
-    with r1[3]:
-        mini_bar(d2lbl, [d["availP"] * 100 for d in last2],
-                 "24 Hr Availability", PURPLE, "a24-avail")
-else:
-    st.info("No finalized daily data in the sheet yet.")
+# ---- YTD row ----
+st.markdown(f"#### YTD ({FY})")
+y1 = st.columns(3)
+with y1[0]:
+    kpi_card("YTD OEE", pct(mtd.get("oeeP", 0)),
+             "Oct-26 MTD as reference (no multi-year OEE history in sheet)", BLUE)
+with y1[1]:
+    kpi_card("YTD Efficiency", pct(mtd.get("perfP", 0)), "Oct-26 MTD as reference", GREEN)
+with y1[2]:
+    kpi_card("YTD Quality", pct(mtd.get("qualP", 0)), "Oct-26 MTD as reference", TEAL)
+y2 = st.columns(3)
+with y2[0]:
+    kpi_card("YTD Availability", pct(mtd.get("availP", 0)), "Oct-26 MTD as reference", PURPLE)
+with y2[1]:
+    if M["trend"]:
+        ms = [m["m"] for m in M["trend"]]
+        ps = [m["prod"] for m in M["trend"]]
+        mini_bar(ms, ps, f"YTD Production ({FY})", AMBER, "aytd-prod",
+                 suffix=" MT", hl=True)
+with y2[2]:
+    kpi_card("YTD Tonnage", f"{ytd:,.0f}", f"MT of {tgt:,.0f} MT target", AMBER)
+
 
 # ---- MTD row ----
 st.markdown("#### MTD")
@@ -283,83 +287,25 @@ with m2[2]:
     kpi_card("MTD Tonnage", f"{mtd.get('ach', 0):,.1f}", "MT", AMBER)
 st.caption("OEE breakdown available from Oct-26 only — earlier months have production totals, no OEE data.")
 
-# ---- YTD row ----
-st.markdown(f"#### YTD ({FY})")
-y1 = st.columns(3)
-with y1[0]:
-    kpi_card("YTD OEE", pct(mtd.get("oeeP", 0)),
-             "Oct-26 MTD as reference (no multi-year OEE history in sheet)", BLUE)
-with y1[1]:
-    kpi_card("YTD Efficiency", pct(mtd.get("perfP", 0)), "Oct-26 MTD as reference", GREEN)
-with y1[2]:
-    kpi_card("YTD Quality", pct(mtd.get("qualP", 0)), "Oct-26 MTD as reference", TEAL)
-y2 = st.columns(3)
-with y2[0]:
-    kpi_card("YTD Availability", pct(mtd.get("availP", 0)), "Oct-26 MTD as reference", PURPLE)
-with y2[1]:
-    if M["trend"]:
-        ms = [m["m"] for m in M["trend"]]
-        ps = [m["prod"] for m in M["trend"]]
-        mini_bar(ms, ps, f"YTD Production ({FY})", AMBER, "aytd-prod",
-                 suffix=" MT", hl=True)
-with y2[2]:
-    kpi_card("YTD Tonnage", f"{ytd:,.0f}", f"MT of {tgt:,.0f} MT target", AMBER)
 
-# ================= 24 HRS SUMMARY =================
-st.markdown('<div class="section-band">24 Hrs Summary</div>', unsafe_allow_html=True)
+# ---- 24 hr row (template: 4 charts, last 2 days) ----
+st.markdown("#### 24 Hr")
 if last2:
-    L = last2[-1]
-    st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
-    # losses time (template: "only add losses time")
-    kpi_card("Losses Time (24 Hr)", f"{L['dt'] / 60:.1f}",
-             f"hrs downtime · run {L['run'] / 60:.1f} hrs / available {L['avail'] / 60:.1f} hrs",
-             "#b91c1c")
-    s1 = st.columns(3)
-    with s1[0]:
-        sa = sum(d.get("shiftA", 0) for d in M["daily"])
-        sb = sum(d.get("shiftB", 0) for d in M["daily"])
-        d0 = M["daily"][0]["date"].strftime("%d-%b")
-        d1 = M["daily"][-1]["date"].strftime("%d-%b")
-        fig = go.Figure(go.Pie(
-            labels=["Shift A", "Shift B"], values=[sa, sb], hole=0.55,
-            marker_colors=[BLUE, "#5b9bd5"],
-            textinfo="label+percent", textfont=dict(size=12),
-            hovertemplate="%{label}: %{value:.1f} MT (%{percent})<extra></extra>"))
-        fig.update_layout(
-            title=dict(text="Shift-wise Production (MTD)", font=dict(size=12)),
-            height=250, margin=dict(l=5, r=5, t=35, b=5),
-            legend=dict(orientation="h", y=-0.05),
-            annotations=[dict(text=f"{sa + sb:.1f}<br>MT", x=0.5, y=0.5,
-                              font_size=16, showarrow=False)])
-        st.plotly_chart(fig, use_container_width=True, key="s-shift-prod")
-        st.caption(f"Sum of daily entries — {d0} to {d1}")
-    with s1[1]:
-        na_card("Shift-wise OEE", "Shift-wise OEE not tracked in the Google Sheet yet")
-    with s1[2]:
-        na_card("Shift-wise Downtime", "Shift-wise downtime not tracked in the Google Sheet yet")
-    s2 = st.columns(3)
-    with s2[0]:
-        na_card("Shift-wise Breakdown", "Shift-wise breakdown not tracked in the Google Sheet yet")
-    with s2[1]:
-        sa = sum(d.get("shiftA", 0) for d in M["daily"])
-        sb = sum(d.get("shiftB", 0) for d in M["daily"])
-        d0 = M["daily"][0]["date"].strftime("%d-%b")
-        d1 = M["daily"][-1]["date"].strftime("%d-%b")
-        st.markdown(
-            f"**Production Report — Shift-wise (MTD)**<br>"
-            f"<table style='width:100%'><tr><th>Shift</th>"
-            f"<th style='text-align:right'>Production (MT)</th></tr>"
-            f"<tr><td>Shift A</td><td style='text-align:right'>{sa:,.1f}</td></tr>"
-            f"<tr><td>Shift B</td><td style='text-align:right'>{sb:,.1f}</td></tr>"
-            f"<tr><td><b>Total</b></td><td style='text-align:right'><b>{sa + sb:,.1f}</b></td></tr>"
-            f"</table>"
-            f"<div style='font-size:12px;color:#64748b'>Sum of daily entries — {d0} to {d1}</div>",
-            unsafe_allow_html=True)
-    with s2[2]:
-        kpi_card("Day Production", f"{L['ach']:,.1f}",
-                 f"MT · plan {L['plan']:,.1f} MT "
-                 f"({(L['ach'] / L['plan'] * 100 if L['plan'] else 0):.0f}% of plan)",
-                 AMBER)
+    r1 = st.columns(4)
+    with r1[0]:
+        mini_bar(d2lbl, [d["oee"] * 100 for d in last2],
+                 "24 Hr OEE", BLUE, "a24-oee")
+    with r1[1]:
+        mini_bar(d2lbl, [d["perfP"] * 100 for d in last2],
+                 "24 Hr Efficiency", GREEN, "a24-eff")
+    with r1[2]:
+        mini_bar(d2lbl, [d["qualP"] * 100 for d in last2],
+                 "24 Hr Quality", TEAL, "a24-qual")
+    with r1[3]:
+        mini_bar(d2lbl, [d["availP"] * 100 for d in last2],
+                 "24 Hr Availability", PURPLE, "a24-avail")
+else:
+    st.info("No finalized daily data in the sheet yet.")
 
 # ================= MTD / YTD SUMMARY =================
 st.markdown('<div class="section-band">MTD / YTD Summary</div>', unsafe_allow_html=True)
@@ -423,6 +369,83 @@ if real_days:
         st.markdown(f"**Best 3 days (by OEE)**<br>{bt}", unsafe_allow_html=True)
         st.markdown(f"**Weakest 3 days (by OEE)**<br>{wt}", unsafe_allow_html=True)
         st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
+
+# ================= WEEKLY SUMMARY =================
+st.markdown('<div class="section-band">Weekly Summary</div>', unsafe_allow_html=True)
+if M["periods"]:
+    wp = M["periods"]
+    rows = "".join(
+        f"<tr><td>{p['p']}</td><td style='text-align:right'>{p['avail']*100:.1f}%</td>"
+        f"<td style='text-align:right'>{p['perf']*100:.1f}%</td>"
+        f"<td style='text-align:right'>{p['qual']*100:.1f}%</td>"
+        f"<td style='text-align:right'>{p['oee']*100:.1f}%</td>"
+        f"<td style='text-align:right'>{p['plan']:.0f}</td>"
+        f"<td style='text-align:right'>{p['ach']:.1f}</td></tr>"
+        for p in wp)
+    st.markdown(
+        f"<table style='width:100%'><tr><th>Period</th>"
+        f"<th style='text-align:right'>Avail</th><th style='text-align:right'>Perf</th>"
+        f"<th style='text-align:right'>Qual</th><th style='text-align:right'>OEE</th>"
+        f"<th style='text-align:right'>Plan (MT)</th><th style='text-align:right'>Ach (MT)</th></tr>{rows}</table>",
+        unsafe_allow_html=True)
+else:
+    st.info("No weekly summary in the sheet yet.")
+
+# ================= 24 HRS SUMMARY =================
+st.markdown('<div class="section-band">24 Hrs Summary</div>', unsafe_allow_html=True)
+if last2:
+    L = last2[-1]
+    st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
+    # losses time (template: "only add losses time")
+    kpi_card("Losses Time (24 Hr)", f"{L['dt'] / 60:.1f}",
+             f"hrs downtime · run {L['run'] / 60:.1f} hrs / available {L['avail'] / 60:.1f} hrs",
+             "#b91c1c")
+    s1 = st.columns(3)
+    with s1[0]:
+        sa = sum(d.get("shiftA", 0) for d in M["daily"])
+        sb = sum(d.get("shiftB", 0) for d in M["daily"])
+        d0 = M["daily"][0]["date"].strftime("%d-%b")
+        d1 = M["daily"][-1]["date"].strftime("%d-%b")
+        fig = go.Figure(go.Pie(
+            labels=["Shift A", "Shift B"], values=[sa, sb], hole=0.55,
+            marker_colors=[BLUE, "#5b9bd5"],
+            textinfo="label+percent", textfont=dict(size=12),
+            hovertemplate="%{label}: %{value:.1f} MT (%{percent})<extra></extra>"))
+        fig.update_layout(
+            title=dict(text="Shift-wise Production (MTD)", font=dict(size=12)),
+            height=250, margin=dict(l=5, r=5, t=35, b=5),
+            legend=dict(orientation="h", y=-0.05),
+            annotations=[dict(text=f"{sa + sb:.1f}<br>MT", x=0.5, y=0.5,
+                              font_size=16, showarrow=False)])
+        st.plotly_chart(fig, use_container_width=True, key="s-shift-prod")
+        st.caption(f"Sum of daily entries — {d0} to {d1}")
+    with s1[1]:
+        na_card("Shift-wise OEE", "Shift-wise OEE not tracked in the Google Sheet yet")
+    with s1[2]:
+        na_card("Shift-wise Downtime", "Shift-wise downtime not tracked in the Google Sheet yet")
+    s2 = st.columns(3)
+    with s2[0]:
+        na_card("Shift-wise Breakdown", "Shift-wise breakdown not tracked in the Google Sheet yet")
+    with s2[1]:
+        sa = sum(d.get("shiftA", 0) for d in M["daily"])
+        sb = sum(d.get("shiftB", 0) for d in M["daily"])
+        d0 = M["daily"][0]["date"].strftime("%d-%b")
+        d1 = M["daily"][-1]["date"].strftime("%d-%b")
+        st.markdown(
+            f"**Production Report — Shift-wise (MTD)**<br>"
+            f"<table style='width:100%'><tr><th>Shift</th>"
+            f"<th style='text-align:right'>Production (MT)</th></tr>"
+            f"<tr><td>Shift A</td><td style='text-align:right'>{sa:,.1f}</td></tr>"
+            f"<tr><td>Shift B</td><td style='text-align:right'>{sb:,.1f}</td></tr>"
+            f"<tr><td><b>Total</b></td><td style='text-align:right'><b>{sa + sb:,.1f}</b></td></tr>"
+            f"</table>"
+            f"<div style='font-size:12px;color:#64748b'>Sum of daily entries — {d0} to {d1}</div>",
+            unsafe_allow_html=True)
+    with s2[2]:
+        kpi_card("Day Production", f"{L['ach']:,.1f}",
+                 f"MT · plan {L['plan']:,.1f} MT "
+                 f"({(L['ach'] / L['plan'] * 100 if L['plan'] else 0):.0f}% of plan)",
+                 AMBER)
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
