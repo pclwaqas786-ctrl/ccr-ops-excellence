@@ -128,7 +128,9 @@ def parse_model(rows):
         elif section == "shift" and lab and re.match(r"^Shift", lab, re.I):
             M["shift"].append({"name": lab, "prod": num(r[2])})
         elif section == "trend" and lab and re.search(r"-26|-27", lab, re.I):
-            M["trend"].append({"m": lab, "prod": num(r[2]), "cum": num(r[3])})
+            M["trend"].append({"m": lab, "prod": num(r[2]), "cum": num(r[3]),
+                               "oee": num(r[4]), "avail": num(r[5]),
+                               "perf": num(r[6]), "qual": num(r[7])})
         elif section == "periods" and re.match(r"^Week", lab, re.I):
             M["periods"].append({"p": lab, "avail": num(r[2]), "perf": num(r[3]),
                                  "qual": num(r[4]), "oee": num(r[5]),
@@ -265,7 +267,31 @@ trendY = [m for m in M["trend"] if m["prod"] > 0]
 tylbl = [m["m"] for m in trendY]
 typrod = [m["prod"] for m in trendY]
 
-def _oee_row(prefix, pct_vals, pct_refs, prod_labels, prod_vals, ton_label, ton_val, keys):
+def _oee_bars(prefix, pct_lists, pct_labels, prod_labels, prod_vals,
+                ton_label, ton_val, keys):
+    """6 bar charts: OEE/Eff/Qual/Avail (% metrics, multi-period) + Production + Tonnage."""
+    titles = ["OEE", "Efficiency", "Quality", "Availability"]
+    colors = [BLUE, GREEN, TEAL, PURPLE]
+    for row in ((0, 1, 2), (3,)):
+        cols = st.columns(3)
+        idxs = [i for i in row]
+        for col, i in zip(cols, idxs):
+            with col:
+                mini_bar(pct_labels, pct_lists[i], f"{prefix} {titles[i]}",
+                         colors[i], keys[i])
+        if len(idxs) < 3:
+            break
+    bcols = st.columns(2)
+    with bcols[0]:
+        mini_bar(prod_labels, prod_vals, f"{prefix} Production", AMBER,
+                 keys[4], suffix=" MT", hl=True)
+    with bcols[1]:
+        mini_bar([ton_label], [ton_val], f"{prefix} Tonnage", AMBER,
+                 keys[5], suffix=" MT", hl=True)
+
+
+def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
+                ton_label, ton_val, keys):
     """4 round gauges (% metrics) + 2 bar charts (Production, Tonnage)."""
     titles = ["OEE", "Efficiency", "Quality", "Availability"]
     colors = [BLUE, GREEN, TEAL, PURPLE]
@@ -283,27 +309,35 @@ def _oee_row(prefix, pct_vals, pct_refs, prod_labels, prod_vals, ton_label, ton_
 
 # ---- YTD row (template: 6 bar graphs, last 2 years) ----
 st.markdown(f"#### YTD ({FY})")
-_oee_row("YTD",
-         [mtd.get("oeeP", 0) * 100, mtd.get("perfP", 0) * 100,
-          mtd.get("qualP", 0) * 100, mtd.get("availP", 0) * 100],
-         [None, None, None, None],
+moee = [m for m in trendY if m["oee"] > 0]
+mlbl = [m["m"] for m in moee]
+_oee_bars("YTD",
+         [[m["oee"] * 100 for m in moee],
+          [m["perf"] * 100 for m in moee],
+          [m["qual"] * 100 for m in moee],
+          [m["avail"] * 100 for m in moee]],
+         mlbl,
          tylbl, typrod, FY, ytd,
          ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
 st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
 
 # ---- MTD row (template: 6 bar graphs, last 2 months) ----
 st.markdown("#### MTD")
-_oee_row("MTD",
-         [mtd.get("oeeP", 0) * 100, mtd.get("perfP", 0) * 100,
-          mtd.get("qualP", 0) * 100, mtd.get("availP", 0) * 100],
-         [None, None, None, None],
+m2oee = [m for m in trend2 if m["oee"] > 0]
+m2lbl = [m["m"] for m in m2oee] or ["Oct-26"]
+_oee_bars("MTD",
+         [[m["oee"] * 100 for m in m2oee] or [mtd.get("oeeP", 0) * 100],
+          [m["perf"] * 100 for m in m2oee] or [mtd.get("perfP", 0) * 100],
+          [m["qual"] * 100 for m in m2oee] or [mtd.get("qualP", 0) * 100],
+          [m["avail"] * 100 for m in m2oee] or [mtd.get("availP", 0) * 100]],
+         m2lbl,
          t2lbl, t2prod, "Oct-26", mtd.get("ach", 0),
          ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
 
 # ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
-    _oee_row("24 Hr",
+    _oee_gauges("24 Hr",
              [last2[-1]["oee"] * 100, last2[-1]["perfP"] * 100,
               last2[-1]["qualP"] * 100, last2[-1]["availP"] * 100],
              [last2[0]["oee"] * 100 if len(last2) > 1 else None,
