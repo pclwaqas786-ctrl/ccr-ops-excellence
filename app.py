@@ -239,71 +239,57 @@ st.markdown('<div class="section-band">OEE Data Analysis</div>', unsafe_allow_ht
 real_days = [d for d in M["daily"] if not d.get("ach_blank")]
 last2 = real_days[-2:] if len(real_days) >= 2 else real_days
 d2lbl = [d["date"].strftime("%d-%b") for d in last2]
+# last 2 months with production (for MTD comparison bars)
+trend2 = [m for m in M["trend"] if m["prod"] > 0][-2:]
+t2lbl = [m["m"] for m in trend2]
+t2prod = [m["prod"] for m in trend2]
+# full YTD trend (months with production)
+trendY = [m for m in M["trend"] if m["prod"] > 0]
+tylbl = [m["m"] for m in trendY]
+typrod = [m["prod"] for m in trendY]
 
-# ---- YTD row ----
+def _grid6(items):
+    """Render 6 (title, labels, values, color, key, suffix) charts in 3x2 grid."""
+    for row in (items[:3], items[3:]):
+        cols = st.columns(3)
+        for col, (title, labels, values, color, key, suffix) in zip(cols, row):
+            with col:
+                mini_bar(labels, values, title, color, key, suffix=suffix or "")
+
+# ---- YTD row (template: 6 bar graphs, last 2 years) ----
 st.markdown(f"#### YTD ({FY})")
-y1 = st.columns(3)
-with y1[0]:
-    kpi_card("YTD OEE", pct(mtd.get("oeeP", 0)),
-             "Oct-26 MTD as reference (no multi-year OEE history in sheet)", BLUE)
-with y1[1]:
-    kpi_card("YTD Efficiency", pct(mtd.get("perfP", 0)), "Oct-26 MTD as reference", GREEN)
-with y1[2]:
-    kpi_card("YTD Quality", pct(mtd.get("qualP", 0)), "Oct-26 MTD as reference", TEAL)
-y2 = st.columns(3)
-with y2[0]:
-    kpi_card("YTD Availability", pct(mtd.get("availP", 0)), "Oct-26 MTD as reference", PURPLE)
-with y2[1]:
-    if M["trend"]:
-        ms = [m["m"] for m in M["trend"]]
-        ps = [m["prod"] for m in M["trend"]]
-        mini_bar(ms, ps, f"YTD Production ({FY})", AMBER, "aytd-prod",
-                 suffix=" MT", hl=True)
-with y2[2]:
-    kpi_card("YTD Tonnage", f"{ytd:,.0f}", f"MT of {tgt:,.0f} MT target", AMBER)
+_grid6([
+    ("YTD OEE", ["Oct-26"], [mtd.get("oeeP", 0) * 100], BLUE, "ytd-oee", "%"),
+    ("YTD Efficiency", ["Oct-26"], [mtd.get("perfP", 0) * 100], GREEN, "ytd-eff", "%"),
+    ("YTD Quality", ["Oct-26"], [mtd.get("qualP", 0) * 100], TEAL, "ytd-qual", "%"),
+    ("YTD Availability", ["Oct-26"], [mtd.get("availP", 0) * 100], PURPLE, "ytd-avail", "%"),
+    ("YTD Production", tylbl, typrod, AMBER, "ytd-prod", " MT"),
+    ("YTD Tonnage", [FY], [ytd], AMBER, "ytd-ton", " MT"),
+])
+st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
 
-
-# ---- MTD row ----
+# ---- MTD row (template: 6 bar graphs, last 2 months) ----
 st.markdown("#### MTD")
-m1 = st.columns(3)
-with m1[0]:
-    kpi_card("MTD OEE", pct(mtd.get("oeeP", 0)), "Oct-26 (only month with OEE data)", BLUE)
-with m1[1]:
-    kpi_card("MTD Efficiency", pct(mtd.get("perfP", 0)), "Oct-26", GREEN)
-with m1[2]:
-    kpi_card("MTD Quality", pct(mtd.get("qualP", 0)), "Oct-26", TEAL)
-m2 = st.columns(3)
-with m2[0]:
-    kpi_card("MTD Availability", pct(mtd.get("availP", 0)), "Oct-26", PURPLE)
-with m2[1]:
-    if len(M["trend"]) >= 2:
-        ms2 = [m["m"] for m in M["trend"][-2:]]
-        ps2 = [m["prod"] for m in M["trend"][-2:]]
-        mini_bar(ms2, ps2, "MTD Production (last 2 months)", AMBER,
-                 "amtd-prod", suffix=" MT", hl=True)
-    else:
-        kpi_card("MTD Production", f"{mtd.get('ach', 0):,.1f}", "MT", AMBER)
-with m2[2]:
-    kpi_card("MTD Tonnage", f"{mtd.get('ach', 0):,.1f}", "MT", AMBER)
-st.caption("OEE breakdown available from Oct-26 only — earlier months have production totals, no OEE data.")
+_grid6([
+    ("MTD OEE", ["Oct-26"], [mtd.get("oeeP", 0) * 100], BLUE, "mtd-oee", "%"),
+    ("MTD Efficiency", ["Oct-26"], [mtd.get("perfP", 0) * 100], GREEN, "mtd-eff", "%"),
+    ("MTD Quality", ["Oct-26"], [mtd.get("qualP", 0) * 100], TEAL, "mtd-qual", "%"),
+    ("MTD Availability", ["Oct-26"], [mtd.get("availP", 0) * 100], PURPLE, "mtd-avail", "%"),
+    ("MTD Production", t2lbl, t2prod, AMBER, "mtd-prod", " MT"),
+    ("MTD Tonnage", ["Oct-26"], [mtd.get("ach", 0)], AMBER, "mtd-ton", " MT"),
+])
 
-
-# ---- 24 hr row (template: 4 charts, last 2 days) ----
+# ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
-    r1 = st.columns(4)
-    with r1[0]:
-        mini_bar(d2lbl, [d["oee"] * 100 for d in last2],
-                 "24 Hr OEE", BLUE, "a24-oee")
-    with r1[1]:
-        mini_bar(d2lbl, [d["perfP"] * 100 for d in last2],
-                 "24 Hr Efficiency", GREEN, "a24-eff")
-    with r1[2]:
-        mini_bar(d2lbl, [d["qualP"] * 100 for d in last2],
-                 "24 Hr Quality", TEAL, "a24-qual")
-    with r1[3]:
-        mini_bar(d2lbl, [d["availP"] * 100 for d in last2],
-                 "24 Hr Availability", PURPLE, "a24-avail")
+    _grid6([
+        ("24 Hr OEE", d2lbl, [d["oee"] * 100 for d in last2], BLUE, "h24-oee", "%"),
+        ("24 Hr Efficiency", d2lbl, [d["perfP"] * 100 for d in last2], GREEN, "h24-eff", "%"),
+        ("24 Hr Quality", d2lbl, [d["qualP"] * 100 for d in last2], TEAL, "h24-qual", "%"),
+        ("24 Hr Availability", d2lbl, [d["availP"] * 100 for d in last2], PURPLE, "h24-avail", "%"),
+        ("24 Hr Production", d2lbl, [d["ach"] for d in last2], AMBER, "h24-prod", " MT"),
+        ("24 Hr Tonnage", d2lbl, [d["ach"] for d in last2], AMBER, "h24-ton", " MT"),
+    ])
 else:
     st.info("No finalized daily data in the sheet yet.")
 
