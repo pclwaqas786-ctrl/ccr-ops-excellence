@@ -170,6 +170,23 @@ def na_card(lbl, note="Not tracked in the Google Sheet yet"):
         f'<div class="note">{note}</div></div>', unsafe_allow_html=True)
 
 
+def mini_gauge(title, value, ref, color, key):
+    """Round gauge for a % metric. value/ref in 0-100; ref=None => no delta."""
+    ind = dict(mode="gauge+number" + ("+delta" if ref is not None else ""),
+               value=round(value, 1),
+               number={"suffix": "%", "font": {"size": 22}},
+               title={"text": title, "font": {"size": 12}},
+               gauge={"axis": {"range": [0, max(100, value * 1.15)], "tickwidth": 1,
+                               "tickcolor": "#64748b"},
+                      "bar": {"color": color, "thickness": 0.75},
+                      "bgcolor": "#e8edf3"})
+    if ref is not None:
+        ind["delta"] = {"reference": round(ref, 1), "suffix": " pts"}
+    fig = go.Figure(go.Indicator(**ind))
+    fig.update_layout(height=210, margin=dict(l=15, r=15, t=40, b=10))
+    st.plotly_chart(fig, use_container_width=True, key=key)
+
+
 def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
     fig = go.Figure(go.Bar(
         x=labels, y=values, marker_color=color,
@@ -248,48 +265,54 @@ trendY = [m for m in M["trend"] if m["prod"] > 0]
 tylbl = [m["m"] for m in trendY]
 typrod = [m["prod"] for m in trendY]
 
-def _grid6(items):
-    """Render 6 (title, labels, values, color, key, suffix) charts in 3x2 grid."""
-    for row in (items[:3], items[3:]):
-        cols = st.columns(3)
-        for col, (title, labels, values, color, key, suffix) in zip(cols, row):
-            with col:
-                mini_bar(labels, values, title, color, key, suffix=suffix or "")
+def _oee_row(prefix, pct_vals, pct_refs, prod_labels, prod_vals, ton_label, ton_val, keys):
+    """4 round gauges (% metrics) + 2 bar charts (Production, Tonnage)."""
+    titles = ["OEE", "Efficiency", "Quality", "Availability"]
+    colors = [BLUE, GREEN, TEAL, PURPLE]
+    gcols = st.columns(4)
+    for col, t, v, r, c, k in zip(gcols, titles, pct_vals, pct_refs, colors, keys[:4]):
+        with col:
+            mini_gauge(f"{prefix} {t}", v, r, c, k)
+    bcols = st.columns(2)
+    with bcols[0]:
+        mini_bar(prod_labels, prod_vals, f"{prefix} Production", AMBER,
+                 keys[4], suffix=" MT", hl=True)
+    with bcols[1]:
+        mini_bar([ton_label], [ton_val], f"{prefix} Tonnage", AMBER,
+                 keys[5], suffix=" MT", hl=True)
 
 # ---- YTD row (template: 6 bar graphs, last 2 years) ----
 st.markdown(f"#### YTD ({FY})")
-_grid6([
-    ("YTD OEE", ["Oct-26"], [mtd.get("oeeP", 0) * 100], BLUE, "ytd-oee", "%"),
-    ("YTD Efficiency", ["Oct-26"], [mtd.get("perfP", 0) * 100], GREEN, "ytd-eff", "%"),
-    ("YTD Quality", ["Oct-26"], [mtd.get("qualP", 0) * 100], TEAL, "ytd-qual", "%"),
-    ("YTD Availability", ["Oct-26"], [mtd.get("availP", 0) * 100], PURPLE, "ytd-avail", "%"),
-    ("YTD Production", tylbl, typrod, AMBER, "ytd-prod", " MT"),
-    ("YTD Tonnage", [FY], [ytd], AMBER, "ytd-ton", " MT"),
-])
+_oee_row("YTD",
+         [mtd.get("oeeP", 0) * 100, mtd.get("perfP", 0) * 100,
+          mtd.get("qualP", 0) * 100, mtd.get("availP", 0) * 100],
+         [None, None, None, None],
+         tylbl, typrod, FY, ytd,
+         ["ytd-oee", "ytd-eff", "ytd-qual", "ytd-avail", "ytd-prod", "ytd-ton"])
 st.caption("OEE breakdown from Oct-26 only — earlier months have production totals, no OEE history in sheet.")
 
 # ---- MTD row (template: 6 bar graphs, last 2 months) ----
 st.markdown("#### MTD")
-_grid6([
-    ("MTD OEE", ["Oct-26"], [mtd.get("oeeP", 0) * 100], BLUE, "mtd-oee", "%"),
-    ("MTD Efficiency", ["Oct-26"], [mtd.get("perfP", 0) * 100], GREEN, "mtd-eff", "%"),
-    ("MTD Quality", ["Oct-26"], [mtd.get("qualP", 0) * 100], TEAL, "mtd-qual", "%"),
-    ("MTD Availability", ["Oct-26"], [mtd.get("availP", 0) * 100], PURPLE, "mtd-avail", "%"),
-    ("MTD Production", t2lbl, t2prod, AMBER, "mtd-prod", " MT"),
-    ("MTD Tonnage", ["Oct-26"], [mtd.get("ach", 0)], AMBER, "mtd-ton", " MT"),
-])
+_oee_row("MTD",
+         [mtd.get("oeeP", 0) * 100, mtd.get("perfP", 0) * 100,
+          mtd.get("qualP", 0) * 100, mtd.get("availP", 0) * 100],
+         [None, None, None, None],
+         t2lbl, t2prod, "Oct-26", mtd.get("ach", 0),
+         ["mtd-oee", "mtd-eff", "mtd-qual", "mtd-avail", "mtd-prod", "mtd-ton"])
 
 # ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
-    _grid6([
-        ("24 Hr OEE", d2lbl, [d["oee"] * 100 for d in last2], BLUE, "h24-oee", "%"),
-        ("24 Hr Efficiency", d2lbl, [d["perfP"] * 100 for d in last2], GREEN, "h24-eff", "%"),
-        ("24 Hr Quality", d2lbl, [d["qualP"] * 100 for d in last2], TEAL, "h24-qual", "%"),
-        ("24 Hr Availability", d2lbl, [d["availP"] * 100 for d in last2], PURPLE, "h24-avail", "%"),
-        ("24 Hr Production", d2lbl, [d["ach"] for d in last2], AMBER, "h24-prod", " MT"),
-        ("24 Hr Tonnage", d2lbl, [d["ach"] for d in last2], AMBER, "h24-ton", " MT"),
-    ])
+    _oee_row("24 Hr",
+             [last2[-1]["oee"] * 100, last2[-1]["perfP"] * 100,
+              last2[-1]["qualP"] * 100, last2[-1]["availP"] * 100],
+             [last2[0]["oee"] * 100 if len(last2) > 1 else None,
+              last2[0]["perfP"] * 100 if len(last2) > 1 else None,
+              last2[0]["qualP"] * 100 if len(last2) > 1 else None,
+              last2[0]["availP"] * 100 if len(last2) > 1 else None],
+             d2lbl, [d["ach"] for d in last2],
+             d2lbl[-1], last2[-1]["ach"],
+             ["h24-oee", "h24-eff", "h24-qual", "h24-avail", "h24-prod", "h24-ton"])
 else:
     st.info("No finalized daily data in the sheet yet.")
 
