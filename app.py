@@ -172,6 +172,24 @@ def na_card(lbl, note="Not tracked in the Google Sheet yet"):
         f'<div class="note">{note}</div></div>', unsafe_allow_html=True)
 
 
+def mini_donut(title, value, prev_text, color, key):
+    """Round donut: value in 0-100, big % in center, prev period as caption."""
+    v = max(0, min(100, round(value, 1)))
+    fig = go.Figure(go.Pie(values=[v, 100 - v], hole=0.72,
+                           marker_colors=[color, "#e8edf3"],
+                           textinfo="none", hoverinfo="skip",
+                           sort=False, direction="clockwise"))
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=13)),
+        annotations=[dict(text=f"{v:.1f}%", x=0.5, y=0.5,
+                          font_size=22, showarrow=False)],
+        height=210, margin=dict(l=10, r=10, t=40, b=10),
+        showlegend=False)
+    st.plotly_chart(fig, use_container_width=True, key=key)
+    if prev_text:
+        st.caption(prev_text)
+
+
 def mini_gauge(title, value, ref, color, key):
     """Round gauge for a % metric. value/ref in 0-100; ref=None => no delta."""
     ind = dict(mode="gauge+number" + ("+delta" if ref is not None else ""),
@@ -269,18 +287,14 @@ typrod = [m["prod"] for m in trendY]
 
 def _oee_bars(prefix, pct_lists, pct_labels, prod_labels, prod_vals,
                 ton_label, ton_val, keys):
-    """6 bar charts: OEE/Eff/Qual/Avail (% metrics, multi-period) + Production + Tonnage."""
+    """4 % charts in ONE row + Production/Tonnage bars below."""
     titles = ["OEE", "Efficiency", "Quality", "Availability"]
     colors = [BLUE, GREEN, TEAL, PURPLE]
-    for row in ((0, 1, 2), (3,)):
-        cols = st.columns(3)
-        idxs = [i for i in row]
-        for col, i in zip(cols, idxs):
-            with col:
-                mini_bar(pct_labels, pct_lists[i], f"{prefix} {titles[i]}",
-                         colors[i], keys[i])
-        if len(idxs) < 3:
-            break
+    cols = st.columns(4)
+    for col, i in zip(cols, range(4)):
+        with col:
+            mini_bar(pct_labels, pct_lists[i], f"{prefix} {titles[i]}",
+                     colors[i], keys[i])
     bcols = st.columns(2)
     with bcols[0]:
         mini_bar(prod_labels, prod_vals, f"{prefix} Production", AMBER,
@@ -337,16 +351,22 @@ _oee_bars("MTD",
 # ---- 24 Hr row (template: 6 bar graphs, last 2 days) ----
 st.markdown("#### 24 Hr")
 if last2:
-    _oee_gauges("24 Hr",
-             [last2[-1]["oee"] * 100, last2[-1]["perfP"] * 100,
-              last2[-1]["qualP"] * 100, last2[-1]["availP"] * 100],
-             [last2[0]["oee"] * 100 if len(last2) > 1 else None,
-              last2[0]["perfP"] * 100 if len(last2) > 1 else None,
-              last2[0]["qualP"] * 100 if len(last2) > 1 else None,
-              last2[0]["availP"] * 100 if len(last2) > 1 else None],
-             d2lbl, [d["ach"] for d in last2],
-             d2lbl[-1], last2[-1]["ach"],
-             ["h24-oee", "h24-eff", "h24-qual", "h24-avail", "h24-prod", "h24-ton"])
+    dcols = st.columns(4)
+    _d = [("OEE", "oee", BLUE, "h24-oee"),
+          ("Efficiency", "perfP", GREEN, "h24-eff"),
+          ("Quality", "qualP", TEAL, "h24-qual"),
+          ("Availability", "availP", PURPLE, "h24-avail")]
+    for col, (t, k, c, key) in zip(dcols, _d):
+        with col:
+            prev = f"{d2lbl[0]}: {last2[0][k]*100:.1f}%" if len(last2) > 1 else ""
+            mini_donut(f"24 Hr {t}", last2[-1][k] * 100, prev, c, key)
+    bcols = st.columns(2)
+    with bcols[0]:
+        mini_bar(d2lbl, [d["ach"] for d in last2], "24 Hr Production",
+                 AMBER, "h24-prod", suffix=" MT", hl=True)
+    with bcols[1]:
+        mini_bar(d2lbl, [d["ach"] for d in last2], "24 Hr Tonnage",
+                 AMBER, "h24-ton", suffix=" MT", hl=True)
 else:
     st.info("No finalized daily data in the sheet yet.")
 
