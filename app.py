@@ -28,7 +28,7 @@ st.set_page_config(page_title="Ops Excellence Dash Board", layout="wide")
 # ---------------------------------------------------------------- data ----
 @st.cache_data(ttl=900)
 def fetch_sheet():
-    url = "https://pclwaqas786-ctrl.github.io/ccr-oee-dashboard/data.json"
+    url = "https://raw.githubusercontent.com/pclwaqas786-ctrl/ccr-ops-excellence/data/data.json"
     r = requests.get(url, timeout=30)
     r.raise_for_status()
     d = r.json()
