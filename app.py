@@ -244,8 +244,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="background:#f5a623; border-radius:8px; padding:14px 18px; margin-bottom:6px;">
-<div style="font-size:24px; font-weight:800; color:#1c2733; text-align:center;">Ops Excellence Dash Board</div>
+<div style="background:linear-gradient(135deg, #1f4e78 0%, #2e75b6 45%, #f5a623 100%);
+            border-radius:10px; padding:20px 24px; margin-bottom:8px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+<div style="font-size:28px; font-weight:800; color:#ffffff; text-align:center;
+            letter-spacing:0.5px;">CCR &mdash; Ops Excellence Dashboard</div>
+<div style="font-size:14px; color:#ffe9c4; text-align:center; margin-top:6px;">
+Copper Casting &amp; Rolling Plant &mdash; Daily OEE, Production &amp; Downtime Performance</div>
 </div>
 """, unsafe_allow_html=True)
 
