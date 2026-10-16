@@ -513,10 +513,16 @@ if real_days:
 
 # ================= WEEKLY SUMMARY =================
 st.markdown('<div class="section-band">Weekly Summary</div>', unsafe_allow_html=True)
+_WEEK_DATES = {"Week 1": "01–07 Oct", "Week 2": "08–14 Oct",
+                "Week 3": "15–21 Oct", "Week 4": "22–28 Oct",
+                "Week 5": "29–31 Oct"}
 if M["periods"]:
     wp = M["periods"]
+    def _plabel(p):
+        base = p['p'].strip()
+        return f"{base} ({_WEEK_DATES.get(base, '')})" if base in _WEEK_DATES else base
     rows = "".join(
-        f"<tr><td>{p['p']}</td><td style='text-align:right'>{p['avail']*100:.1f}%</td>"
+        f"<tr><td>{_plabel(p)}</td><td style='text-align:right'>{p['avail']*100:.1f}%</td>"
         f"<td style='text-align:right'>{p['perf']*100:.1f}%</td>"
         f"<td style='text-align:right'>{p['qual']*100:.1f}%</td>"
         f"<td style='text-align:right'>{p['oee']*100:.1f}%</td>"
