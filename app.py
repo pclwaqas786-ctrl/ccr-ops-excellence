@@ -172,22 +172,26 @@ def na_card(lbl, note="Not tracked in the Google Sheet yet"):
         f'<div class="note">{note}</div></div>', unsafe_allow_html=True)
 
 
+DONUT_COLOR = "#1f4e78"
+
 def mini_donut(title, value, prev_text, color, key):
-    """Round donut: value in 0-100, big % in center, prev period as caption."""
+    """Round donut: latest % big in center, prev period % smaller inside too."""
     v = max(0, min(100, round(value, 1)))
     fig = go.Figure(go.Pie(values=[v, 100 - v], hole=0.72,
-                           marker_colors=[color, "#e8edf3"],
+                           marker_colors=[DONUT_COLOR, "#e8edf3"],
                            textinfo="none", hoverinfo="skip",
                            sort=False, direction="clockwise"))
+    ann = [dict(text=f"<b>{v:.1f}%</b>", x=0.5, y=0.55,
+                font_size=26, showarrow=False)]
+    if prev_text:
+        ann.append(dict(text=prev_text, x=0.5, y=0.38,
+                        font_size=13, showarrow=False, font_color="#64748b"))
     fig.update_layout(
         title=dict(text=title, font=dict(size=13)),
-        annotations=[dict(text=f"<b>{v:.1f}%</b>", x=0.5, y=0.5,
-                          font_size=26, showarrow=False)],
+        annotations=ann,
         height=220, margin=dict(l=10, r=10, t=40, b=10),
         showlegend=False)
     st.plotly_chart(fig, use_container_width=True, key=key)
-    if prev_text:
-        st.caption(prev_text)
 
 
 def mini_gauge(title, value, ref, color, key):
