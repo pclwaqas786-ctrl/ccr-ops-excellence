@@ -513,9 +513,9 @@ if real_days:
 
 # ================= WEEKLY SUMMARY =================
 st.markdown('<div class="section-band">Weekly Summary</div>', unsafe_allow_html=True)
-_WEEK_DATES = {"Week 1": "01–07 Oct", "Week 2": "08–14 Oct",
-                "Week 3": "15–21 Oct", "Week 4": "22–28 Oct",
-                "Week 5": "29–31 Oct"}
+_WEEK_DATES = {"Week 1": "28 Sep–04 Oct", "Week 2": "05–11 Oct",
+                "Week 3": "12–18 Oct", "Week 4": "19–25 Oct",
+                "Week 5": "26 Oct–01 Nov"}
 if M["periods"]:
     wp = M["periods"]
     def _plabel(p):
