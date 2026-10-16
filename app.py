@@ -272,12 +272,25 @@ FY = fy_label()
 tgt = M["target"] or 4800
 ytd = sum(m["prod"] for m in M["trend"]) if M["trend"] else 0
 
-# ---- targets header (as per standard format) ----
+# ---- targets header (attractive green gradient cards) ----
+def _target_card(title, value, unit, grad):
+    st.markdown(
+        f"""<div style="background:{grad}; border-radius:10px; padding:16px 20px;
+             box-shadow:0 2px 8px rgba(0,0,0,0.18); text-align:center;">
+        <div style="font-size:13px; font-weight:700; color:#e8f8ef;
+             letter-spacing:1px; text-transform:uppercase;">{title}</div>
+        <div style="font-size:34px; font-weight:800; color:#ffffff;
+             margin:4px 0;">{value}</div>
+        <div style="font-size:12px; color:#d5f5e3;">{unit}</div></div>""",
+        unsafe_allow_html=True)
+
 tc = st.columns(2)
 with tc[0]:
-    kpi_card("Yearly Target", f"{tgt:,.0f}", "Value tons", BLUE)
+    _target_card("Yearly Target", f"{tgt:,.0f}", "Value tons",
+                 "linear-gradient(135deg, #0d6e3f 0%, #27ae60 100%)")
 with tc[1]:
-    kpi_card("Monthly Target", f"{mtd.get('plan', 0):,.1f}", "Value tons", BLUE)
+    _target_card("Monthly Target", f"{mtd.get('plan', 0):,.1f}", "Value tons",
+                 "linear-gradient(135deg, #0e7c6b 0%, #1abc9c 100%)")
 
 # ================= OEE DATA ANALYSIS =================
 st.markdown('<div class="section-band">OEE Data Analysis</div>', unsafe_allow_html=True)
