@@ -321,31 +321,26 @@ def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
 # ---- YTD row (template: 6 bar graphs, last 2 years) ----
 st.markdown("#### 24 Hr")
 if last2:
-    _yd = last2[-1]
-    _ypct = (_yd["ach"] / _yd["plan"] * 100) if _yd["plan"] else 0
-    sc = st.columns(4)
-    with sc[0]:
-        kpi_card("Date", _yd["date"].strftime("%d-%b-%Y"), "Yesterday", BLUE)
-    with sc[1]:
-        kpi_card("Target", f'{_yd["plan"]:.1f}', "MT", PURPLE)
-    with sc[2]:
-        kpi_card("Production", f'{_yd["ach"]:.1f}', "MT", AMBER)
-    with sc[3]:
-        kpi_card("Plan Achieved", f"{_ypct:.0f}%", "of target", GREEN)
-    _dd = [("OEE", "oee", BLUE, "h24-oee"), ("Efficiency", "perfP", GREEN, "h24-eff"),
-           ("Quality", "qualP", TEAL, "h24-qual"), ("Availability", "availP", PURPLE, "h24-avail")]
-    _charts = []
-    for t, k, c, key in _dd:
-        prev = f"{d2lbl[0]}: {last2[0][k]*100:.1f}%" if len(last2) > 1 else ""
-        _charts.append(("donut", {"title": f"24 Hr {t}", "value": last2[-1][k]*100,
-                                  "prev": prev, "color": c, "key": key}))
-    _charts.append(("bar", {"title": "24 Hr Production", "labels": d2lbl,
-                            "values": [d["ach"] for d in last2],
-                            "color": AMBER, "key": "h24-prod", "suffix": " MT"}))
-    _charts.append(("bar", {"title": "24 Hr Tonnage", "labels": d2lbl,
-                            "values": [d["ach"] for d in last2],
-                            "color": AMBER, "key": "h24-ton", "suffix": " MT"}))
-    _oee_row6("24 Hr", _charts)
+    _oee_row6("24 Hr", [
+        ("bar", {"title": "24 Hr OEE", "labels": d2lbl,
+                  "values": [d["oee"]*100 for d in last2],
+                  "color": BLUE, "key": "h24-oee"}),
+        ("bar", {"title": "24 Hr Efficiency", "labels": d2lbl,
+                  "values": [d["perfP"]*100 for d in last2],
+                  "color": GREEN, "key": "h24-eff"}),
+        ("bar", {"title": "24 Hr Quality", "labels": d2lbl,
+                  "values": [d["qualP"]*100 for d in last2],
+                  "color": TEAL, "key": "h24-qual"}),
+        ("bar", {"title": "24 Hr Availability", "labels": d2lbl,
+                  "values": [d["availP"]*100 for d in last2],
+                  "color": PURPLE, "key": "h24-avail"}),
+        ("bar", {"title": "24 Hr Production", "labels": d2lbl,
+                  "values": [d["ach"] for d in last2],
+                  "color": AMBER, "key": "h24-prod", "suffix": " MT"}),
+        ("bar", {"title": "24 Hr Tonnage", "labels": d2lbl,
+                  "values": [d["ach"] for d in last2],
+                  "color": AMBER, "key": "h24-ton", "suffix": " MT"}),
+    ])
 else:
     st.info("No finalized daily data in the sheet yet.")
 
