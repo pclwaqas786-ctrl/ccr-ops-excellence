@@ -339,6 +339,8 @@ def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
 # ---- YTD row (template: 6 bar graphs, last 2 years) ----
 st.markdown("#### 24 Hr")
 if last2:
+    d2dates = " & ".join(d["date"].strftime("%d-%b") for d in last2)
+    st.caption(f"📅 Last 2 finalized days: {d2dates}")
     _oee_row6("24 Hr", [
         ("bar", {"title": "24 Hr OEE", "labels": d2lbl,
                   "values": [d["oee"]*100 for d in last2],
@@ -366,6 +368,7 @@ else:
 st.markdown("#### MTD")
 _m2 = [m for m in trend2 if m["oee"] > 0]
 _m2lbl = [m["m"] for m in _m2] or ["Oct-26"]
+st.caption(f"📅 Last 2 months: {' & '.join(_m2lbl)}")
 _oee_row6("MTD", [
     ("bar", {"title": "MTD OEE", "labels": _m2lbl,
               "values": [m["oee"]*100 for m in _m2] or [mtd.get("oeeP",0)*100],
