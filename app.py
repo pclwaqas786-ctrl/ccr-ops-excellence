@@ -545,14 +545,29 @@ if real_days:
         by_oee = sorted(real_days, key=lambda d: d["oee"], reverse=True)
         best = by_oee[:3]
         worst = by_oee[-3:][::-1]
-        bt = "<br>".join(
-            f"{d['date'].strftime('%d-%b')}: {d['oee'] * 100:.1f}% OEE, {d['ach']:.1f} MT"
-            for d in best)
-        wt = "<br>".join(
-            f"{d['date'].strftime('%d-%b')}: {d['oee'] * 100:.1f}% OEE, {d['ach']:.1f} MT"
+        medals = ["🥇", "🥈", "🥉"]
+        best_cards = "".join(
+            f"<div style='background:linear-gradient(135deg,#16a34a,#22c55e);"
+            f"color:white;border-radius:10px;padding:10px 14px;margin:6px 0;"
+            f"display:flex;justify-content:space-between;align-items:center;'>"
+            f"<span style='font-size:18px;'>{medals[i]} <b>{d['date'].strftime('%d-%b')}</b></span>"
+            f"<span><b>{d['oee']*100:.1f}%</b> OEE · {d['ach']:.1f} MT</span></div>"
+            for i, d in enumerate(best))
+        worst_cards = "".join(
+            f"<div style='background:linear-gradient(135deg,#dc2626,#ef4444);"
+            f"color:white;border-radius:10px;padding:10px 14px;margin:6px 0;"
+            f"display:flex;justify-content:space-between;align-items:center;'>"
+            f"<span style='font-size:18px;'>⚠️ <b>{d['date'].strftime('%d-%b')}</b></span>"
+            f"<span><b>{d['oee']*100:.1f}%</b> OEE · {d['ach']:.1f} MT</span></div>"
             for d in worst)
-        st.markdown(f"**Best 3 days (by OEE)**<br>{bt}", unsafe_allow_html=True)
-        st.markdown(f"**Weakest 3 days (by OEE)**<br>{wt}", unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='font-size:15px;font-weight:bold;margin-bottom:4px;'>"
+            f"🏆 Best 3 Days (by OEE)</div>{best_cards}",
+            unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='font-size:15px;font-weight:bold;margin:12px 0 4px;'>"
+            f"📉 Weakest 3 Days (by OEE)</div>{worst_cards}",
+            unsafe_allow_html=True)
         st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
 
 # ================= WEEKLY SUMMARY =================
