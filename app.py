@@ -466,7 +466,7 @@ if last2:
             f"Total: <b>{la+lb:.1f} MT</b></div>"
             f"</div>",
             unsafe_allow_html=True)
-    s2 = st.columns(2)
+    s2 = st.columns(3)
     with s2[1]:
         sa = sum(d.get("shiftA", 0) for d in M["daily"])
         sb = sum(d.get("shiftB", 0) for d in M["daily"])
