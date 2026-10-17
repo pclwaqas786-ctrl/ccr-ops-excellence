@@ -583,19 +583,37 @@ if M["periods"]:
     def _plabel(p):
         base = p['p'].strip()
         return f"{base} ({_WEEK_DATES.get(base, '')})" if base in _WEEK_DATES else base
+    def _oee_color(v):
+        if v >= 85: return "#16a34a"
+        if v >= 70: return "#c77700"
+        if v > 0: return "#dc2626"
+        return "#94a3b8"
     rows = "".join(
-        f"<tr><td>{_plabel(p)}</td><td style='text-align:right'>{p['avail']*100:.1f}%</td>"
-        f"<td style='text-align:right'>{p['perf']*100:.1f}%</td>"
-        f"<td style='text-align:right'>{p['qual']*100:.1f}%</td>"
-        f"<td style='text-align:right'>{p['oee']*100:.1f}%</td>"
-        f"<td style='text-align:right'>{p['plan']:.0f}</td>"
-        f"<td style='text-align:right'>{p['ach']:.1f}</td></tr>"
+        f"<tr style='border-bottom:1px solid #e2e8f0;'>"
+        f"<td style='padding:10px;font-weight:bold;'>📅 {_plabel(p)}</td>"
+        f"<td style='text-align:right;padding:10px;'>{p['avail']*100:.1f}%</td>"
+        f"<td style='text-align:right;padding:10px;'>{p['perf']*100:.1f}%</td>"
+        f"<td style='text-align:right;padding:10px;'>{p['qual']*100:.1f}%</td>"
+        f"<td style='text-align:right;padding:10px;'>"
+        f"<span style='background:{_oee_color(p['oee']*100)};color:white;"
+        f"padding:4px 12px;border-radius:12px;font-weight:bold;'>"
+        f"{p['oee']*100:.1f}%</span></td>"
+        f"<td style='text-align:right;padding:10px;'>{p['plan']:.0f}</td>"
+        f"<td style='text-align:right;padding:10px;font-weight:bold;'>{p['ach']:.1f}</td></tr>"
         for p in wp)
     st.markdown(
-        f"<table style='width:100%'><tr><th>Period</th>"
-        f"<th style='text-align:right'>Avail</th><th style='text-align:right'>Perf</th>"
-        f"<th style='text-align:right'>Qual</th><th style='text-align:right'>OEE</th>"
-        f"<th style='text-align:right'>Plan (MT)</th><th style='text-align:right'>Ach (MT)</th></tr>{rows}</table>",
+        f"<div style='background:white;border-radius:12px;padding:8px;"
+        f"box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow-x:auto;'>"
+        f"<table style='width:100%;border-collapse:collapse;'>"
+        f"<tr style='background:#1f4e78;color:white;'>"
+        f"<th style='padding:12px;text-align:left;border-radius:8px 0 0 0;'>Period</th>"
+        f"<th style='padding:12px;text-align:right;'>Avail</th>"
+        f"<th style='padding:12px;text-align:right;'>Perf</th>"
+        f"<th style='padding:12px;text-align:right;'>Qual</th>"
+        f"<th style='padding:12px;text-align:right;'>OEE</th>"
+        f"<th style='padding:12px;text-align:right;'>Plan (MT)</th>"
+        f"<th style='padding:12px;text-align:right;border-radius:0 8px 0 0;'>Ach (MT)</th></tr>"
+        f"{rows}</table></div>",
         unsafe_allow_html=True)
 else:
     st.info("No weekly summary in the sheet yet.")
