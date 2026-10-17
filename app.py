@@ -187,7 +187,7 @@ def mini_donut(title, value, prev_text, color, key):
         ann.append(dict(text=prev_text, x=0.5, y=0.38,
                         font_size=13, showarrow=False, font_color="#64748b"))
     fig.update_layout(
-        title=dict(text=title, font=dict(size=13)),
+        title=dict(text=title, font=dict(size=16, family="Arial Black")),
         annotations=ann,
         height=220, margin=dict(l=10, r=10, t=40, b=10),
         showlegend=False)
@@ -215,9 +215,9 @@ def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
     fig = go.Figure(go.Bar(
         x=labels, y=values, marker_color=color,
         text=[f"{v:,.1f}{suffix}" for v in values],
-        textposition="outside", textfont=dict(size=11),
+        textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}: %{y:,.1f}" + suffix + "<extra></extra>"))
-    kw = dict(title=dict(text=title, font=dict(size=12)),
+    kw = dict(title=dict(text=title, font=dict(size=15, family="Arial Black")),
               height=230, margin=dict(l=5, r=5, t=35, b=5))
     if hl:
         kw["shapes"] = [dict(type="rect", xref="paper", yref="paper", x0=0, y0=0,
@@ -430,10 +430,10 @@ if last2:
         fig = go.Figure(go.Pie(
             labels=["Shift A", "Shift B"], values=[sa, sb], hole=0.55,
             marker_colors=[BLUE, "#5b9bd5"],
-            textinfo="label+percent", textfont=dict(size=12),
+            textinfo="label+percent", textfont=dict(size=14, family="Arial Black"),
             hovertemplate="%{label}: %{value:.1f} MT (%{percent})<extra></extra>"))
         fig.update_layout(
-            title=dict(text="Shift-wise Production (MTD)", font=dict(size=12)),
+            title=dict(text="Shift-wise Production (MTD)", font=dict(family="Arial Black", size=15)),
             height=250, margin=dict(l=5, r=5, t=35, b=5),
             legend=dict(orientation="h", y=-0.05),
             annotations=[dict(text=f"{sa + sb:.1f}<br>MT", x=0.5, y=0.5,
@@ -525,15 +525,15 @@ if real_days:
         x=xs, y=[d.get("shiftA", 0) for d in real_days], name="Shift A",
         marker_color=BLUE,
         text=[f"{d.get('shiftA', 0):.1f}" for d in real_days],
-        textposition="outside", textfont=dict(size=10),
+        textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}<br>Shift A: %{y:.1f} MT<extra></extra>"))
     fig.add_trace(go.Bar(
         x=xs, y=[d.get("shiftB", 0) for d in real_days], name="Shift B",
         marker_color="#5b9bd5",
         text=[f"{d.get('shiftB', 0):.1f}" for d in real_days],
-        textposition="outside", textfont=dict(size=10),
+        textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}<br>Shift B: %{y:.1f} MT<extra></extra>"))
-    fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(size=13)),
+    fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(family="Arial Black", size=16)),
                       barmode="group", height=340,
                       margin=dict(l=5, r=5, t=40, b=5),
                       legend=dict(orientation="h", y=1.08))
@@ -543,16 +543,16 @@ if real_days:
         fig = go.Figure(go.Bar(
             x=xs, y=[d["oee"] * 100 for d in real_days], marker_color=BLUE,
             text=[f"{d['oee'] * 100:.1f}%" for d in real_days],
-            textposition="outside", textfont=dict(size=10)))
-        fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(size=13)),
+            textposition="outside", textfont=dict(size=14, family="Arial Black")))
+        fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-oee")
     with u1[1]:
         fig = go.Figure(go.Bar(
             x=xs, y=[d["ach"] for d in real_days], marker_color=AMBER,
             text=[f"{d['ach']:.1f}" for d in real_days],
-            textposition="outside", textfont=dict(size=10)))
-        fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(size=13)),
+            textposition="outside", textfont=dict(size=14, family="Arial Black")))
+        fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-prod")
     u2 = st.columns(2)
@@ -563,8 +563,8 @@ if real_days:
         fig = go.Figure(go.Bar(
             x=dt_xs, y=[d["dt"] / 60 for d in dt_days], marker_color=RED,
             text=[f"{d['dt'] / 60:.1f}h" for d in dt_days],
-            textposition="outside", textfont=dict(size=10)))
-        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(size=13)),
+            textposition="outside", textfont=dict(size=14, family="Arial Black")))
+        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-dt")
         npd_count = len(real_days) - len(dt_days)
