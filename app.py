@@ -537,13 +537,19 @@ if real_days:
         st.plotly_chart(fig, use_container_width=True, key="u-prod")
     u2 = st.columns(2)
     with u2[0]:
+        # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
+        dt_days = [d for d in real_days if d["ach"] > 0]
+        dt_xs = [d["date"].strftime("%d-%b") for d in dt_days]
         fig = go.Figure(go.Bar(
-            x=xs, y=[d["dt"] / 60 for d in real_days], marker_color=RED,
-            text=[f"{d['dt'] / 60:.1f}h" for d in real_days],
+            x=dt_xs, y=[d["dt"] / 60 for d in dt_days], marker_color=RED,
+            text=[f"{d['dt'] / 60:.1f}h" for d in dt_days],
             textposition="outside", textfont=dict(size=10)))
         fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(size=13)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-dt")
+        npd_count = len(real_days) - len(dt_days)
+        if npd_count > 0:
+            st.caption(f"ℹ️ {npd_count} NPD day(s) excluded (no production — not downtime)")
     with u2[1]:
         by_oee = sorted(real_days, key=lambda d: d["oee"], reverse=True)
         best = by_oee[:3]
