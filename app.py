@@ -460,10 +460,36 @@ if last2:
             f"<div style='font-size:12px;color:#64748b'>Sum of daily entries — {d0} to {d1}</div>",
             unsafe_allow_html=True)
     with s2[2]:
+        # Production status: clear message like "Production Completed — Target Achieved"
+        ach_pct = (L['ach'] / L['plan'] * 100 if L['plan'] else 0)
+        if ach_pct >= 100:
+            status_msg = "✅ Production Completed — Target Achieved"
+            status_color = "#16a34a"
+        elif ach_pct >= 90:
+            status_msg = f"⚠️ Near Target — {ach_pct:.0f}% Achieved"
+            status_color = "#c77700"
+        elif L['ach'] > 0:
+            status_msg = f"⚠️ Below Target — {ach_pct:.0f}% Achieved"
+            status_color = "#c0392b"
+        else:
+            status_msg = "⏸️ No Production"
+            status_color = "#64748b"
         kpi_card("Day Production", f"{L['ach']:,.1f}",
                  f"MT · plan {L['plan']:,.1f} MT "
-                 f"({(L['ach'] / L['plan'] * 100 if L['plan'] else 0):.0f}% of plan)",
+                 f"({ach_pct:.0f}% of plan)",
                  AMBER)
+        st.markdown(
+            f"<div style='background:{status_color}; color:white; padding:10px 16px; "
+            f"border-radius:8px; font-weight:bold; text-align:center; margin-top:8px;'>"
+            f"{status_msg}</div>",
+            unsafe_allow_html=True)
+        # Shift-wise for the latest day (24hr)
+        la, lb = L.get('shiftA', 0), L.get('shiftB', 0)
+        st.markdown(
+            f"<div style='border:1px solid #ccc; border-radius:8px; padding:10px; margin-top:8px;'>"
+            f"<b>Shift-wise (24 Hr)</b><br>"
+            f"Shift A: <b>{la:,.1f} MT</b> | Shift B: <b>{lb:,.1f} MT</b></div>",
+            unsafe_allow_html=True)
 
 
 # ================= MTD / YTD SUMMARY =================
