@@ -421,7 +421,7 @@ if last2:
     kpi_card("Losses Time (24 Hr)", f"{L['dt'] / 60:.1f}",
              f"hrs downtime · run {L['run'] / 60:.1f} hrs / available {L['avail'] / 60:.1f} hrs",
              "#b91c1c")
-    s1 = st.columns(3)
+    s1 = st.columns(2)
     with s1[0]:
         sa = sum(d.get("shiftA", 0) for d in M["daily"])
         sb = sum(d.get("shiftB", 0) for d in M["daily"])
@@ -441,12 +441,32 @@ if last2:
         st.plotly_chart(fig, use_container_width=True, key="s-shift-prod")
         st.caption(f"Sum of daily entries — {d0} to {d1}")
     with s1[1]:
-        na_card("Shift-wise OEE", "Shift-wise OEE not tracked in the Google Sheet yet")
-    with s1[2]:
-        na_card("Shift-wise Downtime", "Shift-wise downtime not tracked in the Google Sheet yet")
-    s2 = st.columns(3)
-    with s2[0]:
-        na_card("Shift-wise Breakdown", "Shift-wise breakdown not tracked in the Google Sheet yet")
+        # 24hr shift-wise for latest day
+        la, lb = L.get('shiftA', 0), L.get('shiftB', 0)
+        ld = L['date'].strftime('%d-%b')
+        st.markdown(
+            f"<div style='background:white;border-radius:12px;padding:16px;"
+            f"box-shadow:0 2px 8px rgba(0,0,0,0.08);'>"
+            f"<div style='font-size:14px;font-weight:bold;margin-bottom:12px;'>"
+            f"🌅 Shift-wise Production (24 Hr)<br>"
+            f"<span style='font-size:12px;color:#64748b;font-weight:normal;'>{ld}</span></div>"
+            f"<div style='display:flex;gap:12px;'>"
+            f"<div style='flex:1;background:#1f4e78;color:white;border-radius:8px;"
+            f"padding:12px;text-align:center;'>"
+            f"<div style='font-size:12px;'>Shift A</div>"
+            f"<div style='font-size:22px;font-weight:bold;'>{la:.1f}</div>"
+            f"<div style='font-size:12px;'>MT</div></div>"
+            f"<div style='flex:1;background:#5b9bd5;color:white;border-radius:8px;"
+            f"padding:12px;text-align:center;'>"
+            f"<div style='font-size:12px;'>Shift B</div>"
+            f"<div style='font-size:22px;font-weight:bold;'>{lb:.1f}</div>"
+            f"<div style='font-size:12px;'>MT</div></div>"
+            f"</div>"
+            f"<div style='text-align:center;margin-top:10px;font-size:13px;color:#64748b;'>"
+            f"Total: <b>{la+lb:.1f} MT</b></div>"
+            f"</div>",
+            unsafe_allow_html=True)
+    s2 = st.columns(2)
     with s2[1]:
         sa = sum(d.get("shiftA", 0) for d in M["daily"])
         sb = sum(d.get("shiftB", 0) for d in M["daily"])
