@@ -471,22 +471,22 @@ if last2:
     _oee_row6("24 Hr", [
         ("bar", {"title": "24 Hr OEE", "labels": d2lbl,
                   "values": [d["oee"]*100 for d in last2],
-                  "color": BLUE, "key": "h24-oee"}),
+                  "color": DAY_C, "key": "h24-oee"}),
         ("bar", {"title": "24 Hr Efficiency", "labels": d2lbl,
                   "values": [d["perfP"]*100 for d in last2],
-                  "color": GREEN, "key": "h24-eff"}),
+                  "color": DAY_C, "key": "h24-eff"}),
         ("bar", {"title": "24 Hr Quality", "labels": d2lbl,
                   "values": [d["qualP"]*100 for d in last2],
-                  "color": TEAL, "key": "h24-qual"}),
+                  "color": DAY_C, "key": "h24-qual"}),
         ("bar", {"title": "24 Hr Availability", "labels": d2lbl,
                   "values": [d["availP"]*100 for d in last2],
-                  "color": PURPLE, "key": "h24-avail"}),
+                  "color": DAY_C, "key": "h24-avail"}),
         ("bar", {"title": "24 Hr Production", "labels": d2lbl,
                   "values": [d["ach"] for d in last2],
-                  "color": AMBER, "key": "h24-prod", "suffix": " MT"}),
+                  "color": DAY_C, "key": "h24-prod", "suffix": " MT"}),
         ("bar", {"title": "24 Hr Tonnage", "labels": d2lbl,
                   "values": [d["ach"] for d in last2],
-                  "color": AMBER, "key": "h24-ton", "suffix": " MT"}),
+                  "color": DAY_C, "key": "h24-ton", "suffix": " MT"}),
     ])
 else:
     st.info("No finalized daily data in the sheet yet.")
@@ -499,20 +499,20 @@ st.caption(f"📅 Last 2 months: {' & '.join(_m2lbl)}")
 _oee_row6("MTD", [
     ("bar", {"title": "MTD OEE", "labels": _m2lbl,
               "values": [m["oee"]*100 for m in _m2] or [mtd.get("oeeP",0)*100],
-              "color": BLUE, "key": "mtd-oee"}),
+              "color": MONTH_C, "key": "mtd-oee"}),
     ("bar", {"title": "MTD Efficiency", "labels": _m2lbl,
               "values": [m["perf"]*100 for m in _m2] or [mtd.get("perfP",0)*100],
-              "color": GREEN, "key": "mtd-eff"}),
+              "color": MONTH_C, "key": "mtd-eff"}),
     ("bar", {"title": "MTD Quality", "labels": _m2lbl,
               "values": [m["qual"]*100 for m in _m2] or [mtd.get("qualP",0)*100],
-              "color": TEAL, "key": "mtd-qual"}),
+              "color": MONTH_C, "key": "mtd-qual"}),
     ("bar", {"title": "MTD Availability", "labels": _m2lbl,
               "values": [m["avail"]*100 for m in _m2] or [mtd.get("availP",0)*100],
-              "color": PURPLE, "key": "mtd-avail"}),
+              "color": MONTH_C, "key": "mtd-avail"}),
     ("bar", {"title": "MTD Production", "labels": t2lbl, "values": t2prod,
-              "color": AMBER, "key": "mtd-prod", "suffix": " MT"}),
+              "color": MONTH_C, "key": "mtd-prod", "suffix": " MT"}),
     ("bar", {"title": "MTD Tonnage", "labels": ["Oct-26"], "values": [mtd.get("ach",0)],
-              "color": AMBER, "key": "mtd-ton", "suffix": " MT"}),
+              "color": MONTH_C, "key": "mtd-ton", "suffix": " MT"}),
 ])
 
 
@@ -522,20 +522,20 @@ _mylbl = [m["m"] for m in _my] or ["Oct-26"]
 _oee_row6("YTD", [
     ("bar", {"title": "YTD OEE", "labels": _mylbl,
               "values": [m["oee"]*100 for m in _my] or [mtd.get("oeeP",0)*100],
-              "color": BLUE, "key": "ytd-oee"}),
+              "color": YEAR_C, "key": "ytd-oee"}),
     ("bar", {"title": "YTD Efficiency", "labels": _mylbl,
               "values": [m["perf"]*100 for m in _my] or [mtd.get("perfP",0)*100],
-              "color": GREEN, "key": "ytd-eff"}),
+              "color": YEAR_C, "key": "ytd-eff"}),
     ("bar", {"title": "YTD Quality", "labels": _mylbl,
               "values": [m["qual"]*100 for m in _my] or [mtd.get("qualP",0)*100],
-              "color": TEAL, "key": "ytd-qual"}),
+              "color": YEAR_C, "key": "ytd-qual"}),
     ("bar", {"title": "YTD Availability", "labels": _mylbl,
               "values": [m["avail"]*100 for m in _my] or [mtd.get("availP",0)*100],
-              "color": PURPLE, "key": "ytd-avail"}),
+              "color": YEAR_C, "key": "ytd-avail"}),
     ("bar", {"title": "YTD Production", "labels": tylbl, "values": typrod,
-              "color": AMBER, "key": "ytd-prod", "suffix": " MT"}),
+              "color": YEAR_C, "key": "ytd-prod", "suffix": " MT"}),
     ("bar", {"title": "YTD Tonnage", "labels": [FY], "values": [ytd],
-              "color": AMBER, "key": "ytd-ton", "suffix": " MT"}),
+              "color": YEAR_C, "key": "ytd-ton", "suffix": " MT"}),
 ])
 
 
@@ -578,12 +578,12 @@ if last2:
             f"🌅 Shift-wise Production (24 Hr)<br>"
             f"<span style='font-size:12px;color:#64748b;font-weight:normal;'>{ld}</span></div>"
             f"<div style='display:flex;gap:12px;'>"
-            f"<div style='flex:1;background:#1f4e78;color:white;border-radius:8px;"
+            f"<div style='flex:1;background:#b45309;color:white;border-radius:8px;"
             f"padding:12px;text-align:center;'>"
             f"<div style='font-size:12px;'>Shift A</div>"
             f"<div style='font-size:22px;font-weight:bold;'>{la:.1f}</div>"
             f"<div style='font-size:12px;'>MT</div></div>"
-            f"<div style='flex:1;background:#5b9bd5;color:white;border-radius:8px;"
+            f"<div style='flex:1;background:#f59e0b;color:white;border-radius:8px;"
             f"padding:12px;text-align:center;'>"
             f"<div style='font-size:12px;'>Shift B</div>"
             f"<div style='font-size:22px;font-weight:bold;'>{lb:.1f}</div>"
@@ -650,13 +650,13 @@ if real_days:
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=xs, y=[d.get("shiftA", 0) for d in real_days], name="Shift A",
-        marker_color=BLUE,
+        marker_color="#b45309",
         text=[f"{d.get('shiftA', 0):.1f}" for d in real_days],
         textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}<br>Shift A: %{y:.1f} MT<extra></extra>"))
     fig.add_trace(go.Bar(
         x=xs, y=[d.get("shiftB", 0) for d in real_days], name="Shift B",
-        marker_color="#5b9bd5",
+        marker_color="#fbbf24",
         text=[f"{d.get('shiftB', 0):.1f}" for d in real_days],
         textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}<br>Shift B: %{y:.1f} MT<extra></extra>"))
@@ -668,7 +668,7 @@ if real_days:
     u1 = st.columns(2)
     with u1[0]:
         fig = go.Figure(go.Bar(
-            x=xs, y=[d["oee"] * 100 for d in real_days], marker_color=BLUE,
+            x=xs, y=[d["oee"] * 100 for d in real_days], marker_color=DAY_C,
             text=[f"{d['oee'] * 100:.1f}%" for d in real_days],
             textposition="outside", textfont=dict(size=14, family="Arial Black")))
         fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=16)),
@@ -676,7 +676,7 @@ if real_days:
         st.plotly_chart(fig, use_container_width=True, key="u-oee")
     with u1[1]:
         fig = go.Figure(go.Bar(
-            x=xs, y=[d["ach"] for d in real_days], marker_color=AMBER,
+            x=xs, y=[d["ach"] for d in real_days], marker_color=DAY_C,
             text=[f"{d['ach']:.1f}" for d in real_days],
             textposition="outside", textfont=dict(size=14, family="Arial Black")))
         fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
@@ -726,35 +726,43 @@ if real_days:
             unsafe_allow_html=True)
         st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
     # ---- downtime by reason: monthly (blue) + yearly (green) ----
+    # Horizontal bars, biggest reason on top, zero reasons hidden — taake
+    # ek nazar me samajh aye plant KYUN ruka.
+    def _reason_chart(title, names, hours, color, key):
+        pairs = sorted(((n, h) for n, h in zip(names, hours) if h > 0.05),
+                       key=lambda x: x[1], reverse=True)
+        if not pairs:
+            st.info("No downtime recorded in this period.")
+            return
+        top_n, top_h = pairs[0]
+        st.markdown(
+            f"<div style='font-size:13px;color:#475569;margin:2px 0 4px 0;'>"
+            f"&#128736; Sab se bara reason: <b>{top_n}</b> &mdash; "
+            f"<b>{top_h:.1f} hrs</b></div>",
+            unsafe_allow_html=True)
+        fig = go.Figure(go.Bar(
+            x=[h for _, h in pairs], y=[n for n, _ in pairs],
+            orientation="h", marker_color=color,
+            text=[f"{h:.1f}h" for _, h in pairs],
+            textposition="outside", textfont=dict(size=13, family="Arial Black"),
+            hovertemplate="%{y}: %{x:.1f} hrs<extra></extra>"))
+        fig.update_layout(
+            title=dict(text=title, font=dict(family="Arial Black", size=16)),
+            height=max(230, 62 * len(pairs) + 90),
+            margin=dict(l=5, r=5, t=40, b=5),
+            yaxis=dict(autorange="reversed"))
+        st.plotly_chart(fig, use_container_width=True, key=key)
+
     u3 = st.columns(2)
     with u3[0]:
-        if any(v > 0 for v in mtd_reasons):
-            _mtitle = (f" — {data['month_title']}" if data.get("month_title") else "")
-            fig = go.Figure(go.Bar(
-                x=REASON_NAMES, y=[v / 60 for v in mtd_reasons], marker_color=MONTH_C,
-                text=[f"{v / 60:.1f}h" for v in mtd_reasons],
-                textposition="outside", textfont=dict(size=13, family="Arial Black")))
-            fig.update_layout(
-                title=dict(text=f"MTD Downtime by Reason (hrs){_mtitle}",
-                           font=dict(family="Arial Black", size=16)),
-                height=300, margin=dict(l=5, r=5, t=40, b=5))
-            st.plotly_chart(fig, use_container_width=True, key="u-dt-mtd")
-        else:
-            st.info("No MTD downtime-by-reason data in the sheet yet.")
+        _mtitle = (f" — {data['month_title']}" if data.get("month_title") else "")
+        _reason_chart(f"MTD Downtime by Reason (hrs){_mtitle}",
+                      REASON_NAMES, [v / 60 for v in mtd_reasons],
+                      MONTH_C, "u-dt-mtd")
     with u3[1]:
-        _yr = [v / 60 for v in ytd_dt["reasons"]]
-        if any(v > 0 for v in _yr):
-            fig = go.Figure(go.Bar(
-                x=ytd_dt["names"], y=_yr, marker_color=YEAR_C,
-                text=[f"{v:.1f}h" for v in _yr],
-                textposition="outside", textfont=dict(size=13, family="Arial Black")))
-            fig.update_layout(
-                title=dict(text=f"YTD Downtime by Reason (hrs) — {FY}",
-                           font=dict(family="Arial Black", size=16)),
-                height=300, margin=dict(l=5, r=5, t=40, b=5))
-            st.plotly_chart(fig, use_container_width=True, key="u-dt-ytd")
-        else:
-            st.info("No YTD downtime-by-reason data in the sheet yet.")
+        _reason_chart(f"YTD Downtime by Reason (hrs) — {FY}",
+                      ytd_dt["names"], [v / 60 for v in ytd_dt["reasons"]],
+                      YEAR_C, "u-dt-ytd")
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
