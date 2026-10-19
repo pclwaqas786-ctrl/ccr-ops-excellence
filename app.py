@@ -810,7 +810,7 @@ if real_days:
         top = details[0]
         st.markdown(
             f"<div style='font-size:13px;color:#475569;margin:2px 0 8px 0;'>"
-            f"&#128736; Sab se bara reason: <b>{top['name']}</b> &mdash; "
+            f"&#128736; Top downtime reason: <b>{top['name']}</b> &mdash; "
             f"<b>{top['hours']:.1f} hrs</b></div>",
             unsafe_allow_html=True)
         for det in details:
@@ -835,7 +835,7 @@ if real_days:
 
 # ================= CAMPAIGN SUMMARY =================
 st.markdown('<div class="section-band" style="background:linear-gradient(135deg,#1f4e78,#3b82c4);">Campaign Summary</div>', unsafe_allow_html=True)
-st.caption("Auto-detected: musalsal production days = ek campaign · 3+ din ka gap (No Plan) = nayi campaign shuru.")
+st.caption("Auto-detected: consecutive production days = one campaign · 3+ day gap (No Plan) = new campaign.")
 
 _amt = data.get("all_month_tabs", {})
 _camp_rows = []
@@ -879,7 +879,7 @@ if _camp_rows:
         xaxis=dict(tickangle=-30))
     st.plotly_chart(fig, use_container_width=True, key="camp-chart", config={'displayModeBar': False})
 else:
-    st.info("Abhi tak koi campaign detect nahi hui.")
+    st.info("No campaigns detected yet.")
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
