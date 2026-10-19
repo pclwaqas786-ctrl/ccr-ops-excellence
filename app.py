@@ -766,10 +766,29 @@ if real_days:
         # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
         dt_days = [d for d in real_days if d["ach"] > 0]
         dt_xs = [d["date"].strftime("%d-%b") for d in dt_days]
+        # Hover: show reason breakdown + summary text from the monthly tab
+        _mt_by_date = {d["date"].strftime("%Y-%m-%d"): d
+                       for d in parse_month_tab(data.get("month_tab", []))}
+        _hover = []
+        for d in dt_days:
+            _dk = d["date"].strftime("%Y-%m-%d")
+            _m = _mt_by_date.get(_dk)
+            _hrs = d["dt"] / 60
+            _t = (f"<b>{d['date'].strftime('%d-%b')}</b>"
+                  f"<br>Downtime: {_hrs:.1f} hrs")
+            if _m:
+                _parts = [f"{REASON_NAMES[i]}: {mins/60:.1f}h"
+                          for i, mins in enumerate(_m["reasons"]) if mins > 0]
+                if _parts:
+                    _t += "<br>" + "<br>".join(_parts)
+                if _m["summary"]:
+                    _t += f"<br><i>{_m['summary']}</i>"
+            _hover.append(_t)
         fig = go.Figure(go.Bar(
             x=dt_xs, y=[d["dt"] / 60 for d in dt_days], marker_color=RED,
             text=[f"{d['dt'] / 60:.1f}h" for d in dt_days],
-            textposition="outside", textfont=dict(size=14, family="Arial Black")))
+            textposition="outside", textfont=dict(size=14, family="Arial Black"),
+            hovertext=_hover, hoverinfo="text"))
         fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-dt")
