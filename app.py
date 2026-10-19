@@ -331,7 +331,7 @@ def mini_donut(title, value, prev_text, color, key):
         annotations=ann,
         height=220, margin=dict(l=10, r=10, t=40, b=10),
         showlegend=False)
-    st.plotly_chart(fig, use_container_width=True, key=key)
+    st.plotly_chart(fig, use_container_width=True, key=key, config={'displayModeBar': False})
 
 
 def mini_gauge(title, value, ref, color, key):
@@ -348,7 +348,7 @@ def mini_gauge(title, value, ref, color, key):
         ind["delta"] = {"reference": round(ref, 1), "suffix": " pts"}
     fig = go.Figure(go.Indicator(**ind))
     fig.update_layout(height=210, margin=dict(l=15, r=15, t=40, b=10))
-    st.plotly_chart(fig, use_container_width=True, key=key)
+    st.plotly_chart(fig, use_container_width=True, key=key, config={'displayModeBar': False})
 
 
 def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
@@ -361,7 +361,7 @@ def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
         kw["shapes"] = [dict(type="rect", xref="paper", yref="paper", x0=0, y0=0,
                              x1=1, y1=1, line=dict(color="#eab308", width=3))]
     fig.update_layout(**kw)
-    st.plotly_chart(fig, use_container_width=True, key=key)
+    st.plotly_chart(fig, use_container_width=True, key=key, config={'displayModeBar': False})
 
 
 # ------------------------------------------------------------------ UI ----
@@ -642,7 +642,7 @@ if last2:
             legend=dict(orientation="h", y=-0.05),
             annotations=[dict(text=f"{sa + sb:.1f}<br>MT", x=0.5, y=0.5,
                               font_size=16, showarrow=False)])
-        st.plotly_chart(fig, use_container_width=True, key="s-shift-prod")
+        st.plotly_chart(fig, use_container_width=True, key="s-shift-prod", config={'displayModeBar': False})
         st.caption(f"Sum of finalized daily entries — {d0} to {d1}")
     with s1[1]:
         # 24hr shift-wise for latest day
@@ -737,7 +737,7 @@ if real_days:
                       barmode="group", height=340,
                       margin=dict(l=5, r=5, t=40, b=5),
                       legend=dict(orientation="h", y=1.08))
-    st.plotly_chart(fig, use_container_width=True, key="u-shift")
+    st.plotly_chart(fig, use_container_width=True, key="u-shift", config={'displayModeBar': False})
     u1 = st.columns(2)
     with u1[0]:
         fig = go.Figure(go.Bar(
@@ -745,14 +745,14 @@ if real_days:
             hovertemplate="%{x}: %{y:.1f}%<extra></extra>"))
         fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
-        st.plotly_chart(fig, use_container_width=True, key="u-oee")
+        st.plotly_chart(fig, use_container_width=True, key="u-oee", config={'displayModeBar': False})
     with u1[1]:
         fig = go.Figure(go.Bar(
             x=xs, y=[d["ach"] for d in real_days], marker_color=DAY_C,
             hovertemplate="%{x}: %{y:.1f} MT<extra></extra>"))
         fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
-        st.plotly_chart(fig, use_container_width=True, key="u-prod")
+        st.plotly_chart(fig, use_container_width=True, key="u-prod", config={'displayModeBar': False})
     u2 = st.columns(1)
     with u2[0]:
         # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
@@ -781,7 +781,7 @@ if real_days:
             hovertext=_hover, hoverinfo="text"))
         fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
-        st.plotly_chart(fig, use_container_width=True, key="u-dt")
+        st.plotly_chart(fig, use_container_width=True, key="u-dt", config={'displayModeBar': False})
         npd_count = len(real_days) - len(dt_days)
         if npd_count > 0:
             st.caption(f"ℹ️ {npd_count} NPD day(s) excluded (no production — not downtime)")
@@ -866,7 +866,7 @@ if _camp_rows:
         legend=dict(orientation="h", yanchor="bottom", y=1.02,
                     xanchor="right", x=1),
         xaxis=dict(tickangle=-30))
-    st.plotly_chart(fig, use_container_width=True, key="camp-chart")
+    st.plotly_chart(fig, use_container_width=True, key="camp-chart", config={'displayModeBar': False})
 else:
     st.info("Abhi tak koi campaign detect nahi hui.")
 
