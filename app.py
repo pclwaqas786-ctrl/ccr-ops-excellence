@@ -32,8 +32,11 @@ st.set_page_config(page_title="Ops Excellence Dash Board", layout="wide")
 
 # ---------------------------------------------------------------- data ----
 @st.cache_data(ttl=900)
-def fetch_sheet():
+def fetch_sheet(buster=None):
     url = "https://raw.githubusercontent.com/pclwaqas786-ctrl/ccr-ops-excellence/data/data.json"
+    if buster:
+        # Cache-buster: bypass GitHub CDN + ensure fresh fetch on manual refresh
+        url += f"?t={buster}"
     r = requests.get(url, timeout=30)
     r.raise_for_status()
     d = r.json()
@@ -399,7 +402,7 @@ Copper Casting &amp; Rolling Plant &mdash; Daily OEE, Production &amp; Downtime 
 """, unsafe_allow_html=True)
 
 try:
-    data = fetch_sheet()
+    data = fetch_sheet(st.session_state.get("_buster"))
 except Exception as e:
     st.error("Could not load data from the sheet. Please press Refresh / Rerun. "
              f"({type(e).__name__})")
@@ -437,7 +440,9 @@ def _period_pill(text, color):
         unsafe_allow_html=True)
 st.caption(f"Updated {data['fetched_at']} · auto-refreshes every ~15 min")
 if st.button("↻ Refresh data"):
-    fetch_sheet.clear()
+    import time as _time
+    # New buster => brand-new cache entry + CDN bypass => guaranteed fresh
+    st.session_state["_buster"] = str(int(_time.time()))
     st.rerun()
 
 FY = fy_label()
