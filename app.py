@@ -23,6 +23,11 @@ RED = "#c0392b"
 TEAL = "#0f766e"
 PURPLE = "#6d28d9"
 
+# Period identity colors — same for day / month / year everywhere in the app
+DAY_C = "#f59e0b"    # 24 Hr (amber)
+MONTH_C = "#1f4e78"  # MTD (blue)
+YEAR_C = "#16a34a"   # YTD (green)
+
 st.set_page_config(page_title="Ops Excellence Dash Board", layout="wide")
 
 # ---------------------------------------------------------------- data ----
@@ -41,7 +46,12 @@ def fetch_sheet():
     except Exception:
         fetched = str(d.get("fetched_at", ""))
     rows = [list(r) + [None] * (16 - len(r)) for r in values]
-    return {"fetched_at": fetched, "rows": rows}
+    mt = d.get("month_tab") or {}
+    yr = d.get("yearly") or {}
+    return {"fetched_at": fetched, "rows": rows,
+            "month_tab": mt.get("values", []) or [],
+            "month_title": mt.get("title", "") or "",
+            "yearly": yr.get("values", []) or []}
 
 
 def num(v):
@@ -75,6 +85,9 @@ def parse_date(v):
                                  int(m0.group(3)))
     if re.fullmatch(r"\d{4,6}", s):
         return datetime.datetime(1970, 1, 1) + datetime.timedelta(days=int(s) - 25569)
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", s)
+    if m:
+        return datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
     m = re.match(r"(\d{1,2})-([A-Za-z]{3})-(\d{2,4})", s)
     if m and m.group(2).lower() in MON:
         y = int(m.group(3))
@@ -142,6 +155,54 @@ def parse_model(rows):
     M["daily"] = [d for d in M["daily"] if re.search(r"final", d["status"], re.I)]
     M["daily"].sort(key=lambda d: d["date"])
     return M
+
+
+REASON_NAMES = ["Raw Material Shortage", "Power Failure", "Process / Setup",
+                "EBD / MBD", "Consumables Shortage", "Planning Advice",
+                "Equipment Failure"]
+
+
+def parse_month_tab(values):
+    """Current month tab (e.g. 'Oct 26'): per-day A/B shift MT, Summary text,
+    downtime-by-reason minutes (cols 13-19) and status."""
+    out = []
+    if not values:
+        return out
+    for r in values[1:]:
+        r = list(r) + [None] * (24 - len(r))
+        dt = parse_date(r[0])
+        if not dt:
+            continue
+        out.append({"date": dt,
+                    "a": num(r[20]), "b": num(r[21]),
+                    "summary": str(r[22] or "").strip(),
+                    "status": str(r[11] or ""),
+                    "reasons": [num(r[i]) for i in range(13, 20)]})
+    return out
+
+
+def parse_yearly(values):
+    """Yearly tab: YTD downtime-by-reason minutes summed over completed
+    month rows (ignores the sheet's own Total row)."""
+    names = list(REASON_NAMES)
+    sums = [0.0] * 7
+    if values and len(values) > 2:
+        hdr = list(values[1]) + [None] * 20
+        for i in range(7):
+            nm = str(hdr[13 + i] or "").strip()
+            if nm:
+                names[i] = nm
+        for r in values[2:]:
+            r = list(r) + [None] * 20
+            lab = str(r[0] or "").strip()
+            if not re.match(r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2,4}$",
+                            lab, re.I):
+                continue
+            if num(r[1]) <= 0 and "complet" not in str(r[11] or "").lower():
+                continue
+            for i in range(7):
+                sums[i] += num(r[13 + i])
+    return {"names": names, "reasons": sums}
 
 
 def pct(x):
@@ -263,6 +324,34 @@ except Exception as e:
 
 M = parse_model(data["rows"])
 mtd = M["mtd"]
+
+# ---- join authoritative shift + summary data from the monthly tab ----
+# (OEE_Data cols O/P are unreliable; the month tab holds real A/B shift MT
+# and the per-day Summary text where the reason is written.)
+month_rows = parse_month_tab(data["month_tab"])
+_month_by_date = {m["date"].date(): m for m in month_rows}
+_final_dates = {d["date"].date() for d in M["daily"]}
+for _d in M["daily"]:
+    _m = _month_by_date.get(_d["date"].date())
+    if _m:
+        _d["shiftA"] = _m["a"]
+        _d["shiftB"] = _m["b"]
+        _d["summary"] = _m["summary"]
+# MTD downtime by reason (minutes -> hours), finalized dates only
+mtd_reasons = [0.0] * 7
+for _m in month_rows:
+    if _m["date"].date() in _final_dates:
+        for _i in range(7):
+            mtd_reasons[_i] += _m["reasons"][_i]
+ytd_dt = parse_yearly(data["yearly"])
+
+
+def _period_pill(text, color):
+    st.markdown(
+        f"<div style='display:inline-block;background:{color};color:#ffffff;"
+        f"font-weight:800;font-size:16px;padding:6px 20px;border-radius:20px;"
+        f"margin:16px 0 6px 0;letter-spacing:.5px;'>{text}</div>",
+        unsafe_allow_html=True)
 st.caption(f"Updated {data['fetched_at']} · auto-refreshes every ~15 min")
 if st.button("↻ Refresh data"):
     fetch_sheet.clear()
@@ -272,25 +361,63 @@ FY = fy_label()
 tgt = M["target"] or 4800
 ytd = sum(m["prod"] for m in M["trend"]) if M["trend"] else 0
 
-# ---- targets header (attractive green gradient cards) ----
-def _target_card(title, value, unit, grad):
+# ---- targets header: target + achieved for year / month / day ----
+# Period identity colors: YEAR = green, MONTH = blue, DAY = amber (same everywhere)
+def _target_card(title, target, achieved, pct_note, grad, warn=None):
+    warn_html = ""
+    if warn:
+        w = str(warn).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        if len(w) > 160:
+            w = w[:157] + "..."
+        warn_html = (f'<div style="font-size:12px;color:#fff;background:rgba(0,0,0,.25);'
+                     f'border-radius:6px;padding:6px 8px;margin-top:8px;text-align:left;">'
+                     f"&#9888; Reason: {w}</div>")
     st.markdown(
         f"""<div style="background:{grad}; border-radius:10px; padding:16px 20px;
              box-shadow:0 2px 8px rgba(0,0,0,0.18); text-align:center;">
         <div style="font-size:13px; font-weight:700; color:#e8f8ef;
              letter-spacing:1px; text-transform:uppercase;">{title}</div>
         <div style="font-size:34px; font-weight:800; color:#ffffff;
-             margin:4px 0;">{value}</div>
-        <div style="font-size:12px; color:#d5f5e3;">{unit}</div></div>""",
+             margin:4px 0;">{target}</div>
+        <div style="font-size:12px; color:#d5f5e3;">Value tons &middot; target</div>
+        <div style="font-size:16px; font-weight:700; color:#ffffff; margin-top:10px;
+             border-top:1px solid rgba(255,255,255,.35); padding-top:8px;">Achieved: {achieved}</div>
+        <div style="font-size:12px; color:#e8f8ef;">{pct_note}</div>{warn_html}</div>""",
         unsafe_allow_html=True)
 
-tc = st.columns(2)
+_ytd_ach = ytd
+_mtd_plan = mtd.get("plan", 0) or 0
+_mtd_ach = mtd.get("ach", 0) or 0
+_last = M["daily"][-1] if M["daily"] else None
+
+tc = st.columns(3)
 with tc[0]:
-    _target_card("Yearly Target", f"{tgt:,.0f}", "Value tons",
+    _yp = (_ytd_ach / tgt * 100) if tgt else 0
+    _target_card("Yearly Target", f"{tgt:,.0f}", f"{_ytd_ach:,.1f} MT",
+                 f"{_yp:.1f}% of target",
                  "linear-gradient(135deg, #0d6e3f 0%, #27ae60 100%)")
 with tc[1]:
-    _target_card("Monthly Target", f"{mtd.get('plan', 0):,.1f}", "Value tons",
-                 "linear-gradient(135deg, #0e7c6b 0%, #1abc9c 100%)")
+    _mp = (_mtd_ach / _mtd_plan * 100) if _mtd_plan else 0
+    _target_card("Monthly Target", f"{_mtd_plan:,.1f}", f"{_mtd_ach:,.1f} MT",
+                 f"{_mp:.1f}% of plan",
+                 "linear-gradient(135deg, #1f4e78 0%, #2e9bd5 100%)")
+with tc[2]:
+    if _last:
+        _dp = _last["plan"] or 0
+        _da = _last["ach"] or 0
+        _pct = (_da / _dp * 100) if _dp else 0
+        _warn = None
+        if _pct < 100:
+            # reason comes from the sheet's Summary column (monthly tab)
+            _rsn = (_last.get("summary") or "").strip()
+            _warn = _rsn if _rsn else "Reason not entered in the sheet yet"
+        _target_card("Day Target", f"{_dp:,.1f}", f"{_da:,.1f} MT",
+                     f"{_pct:.0f}% of plan \u00b7 {_last['date'].strftime('%d-%b')}",
+                     "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)",
+                     warn=_warn)
+    else:
+        _target_card("Day Target", "\u2014", "\u2014", "No finalized day yet",
+                     "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)")
 
 # ================= OEE DATA ANALYSIS =================
 st.markdown('<div class="section-band">OEE Data Analysis</div>', unsafe_allow_html=True)
@@ -336,8 +463,8 @@ def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
         mini_bar([ton_label], [ton_val], f"{prefix} Tonnage", AMBER,
                  keys[5], suffix=" MT", hl=True)
 
-# ---- YTD row (template: 6 bar graphs, last 2 years) ----
-st.markdown("#### 24 Hr")
+# ---- 24HR row (amber = day) ----
+_period_pill("24 HR", DAY_C)
 if last2:
     d2dates = " & ".join(d["date"].strftime("%d-%b") for d in last2)
     st.caption(f"📅 Last 2 finalized days: {d2dates}")
@@ -365,7 +492,7 @@ else:
     st.info("No finalized daily data in the sheet yet.")
 
 
-st.markdown("#### MTD")
+_period_pill("MTD", MONTH_C)
 _m2 = [m for m in trend2 if m["oee"] > 0]
 _m2lbl = [m["m"] for m in _m2] or ["Oct-26"]
 st.caption(f"📅 Last 2 months: {' & '.join(_m2lbl)}")
@@ -389,7 +516,7 @@ _oee_row6("MTD", [
 ])
 
 
-st.markdown(f"#### YTD ({FY})")
+_period_pill(f"YTD ({FY})", YEAR_C)
 _my = [m for m in trendY if m["oee"] > 0]
 _mylbl = [m["m"] for m in _my] or ["Oct-26"]
 _oee_row6("YTD", [
@@ -412,8 +539,8 @@ _oee_row6("YTD", [
 ])
 
 
-# ================= 24 HRS SUMMARY =================
-st.markdown('<div class="section-band">24 Hrs Summary</div>', unsafe_allow_html=True)
+# ================= 24 HRS SUMMARY (amber = day) =================
+st.markdown('<div class="section-band" style="background:linear-gradient(135deg,#b45309,#f59e0b);">24 Hrs Summary</div>', unsafe_allow_html=True)
 if last2:
     L = last2[-1]
     st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
@@ -439,7 +566,7 @@ if last2:
             annotations=[dict(text=f"{sa + sb:.1f}<br>MT", x=0.5, y=0.5,
                               font_size=16, showarrow=False)])
         st.plotly_chart(fig, use_container_width=True, key="s-shift-prod")
-        st.caption(f"Sum of daily entries — {d0} to {d1}")
+        st.caption(f"Sum of finalized daily entries — {d0} to {d1}")
     with s1[1]:
         # 24hr shift-wise for latest day
         la, lb = L.get('shiftA', 0), L.get('shiftB', 0)
@@ -480,7 +607,7 @@ if last2:
             f"<tr><td>Shift B</td><td style='text-align:right'>{sb:,.1f}</td></tr>"
             f"<tr><td><b>Total</b></td><td style='text-align:right'><b>{sa + sb:,.1f}</b></td></tr>"
             f"</table>"
-            f"<div style='font-size:12px;color:#64748b'>Sum of daily entries — {d0} to {d1}</div>",
+            f"<div style='font-size:12px;color:#64748b'>Sum of finalized daily entries — {d0} to {d1}</div>",
             unsafe_allow_html=True)
     with s2[2]:
         # Production status: clear message like "Production Completed — Target Achieved"
@@ -598,51 +725,36 @@ if real_days:
             f"📉 Weakest 3 Days (by OEE)</div>{worst_cards}",
             unsafe_allow_html=True)
         st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
-
-# ================= WEEKLY SUMMARY =================
-st.markdown('<div class="section-band">Weekly Summary</div>', unsafe_allow_html=True)
-_WEEK_DATES = {"Week 1": "28 Sep–04 Oct", "Week 2": "05–11 Oct",
-                "Week 3": "12–18 Oct", "Week 4": "19–25 Oct",
-                "Week 5": "26 Oct–01 Nov"}
-if M["periods"]:
-    wp = M["periods"]
-    def _plabel(p):
-        base = p['p'].strip()
-        return f"{base} ({_WEEK_DATES.get(base, '')})" if base in _WEEK_DATES else base
-    def _oee_color(v):
-        if v >= 85: return "#16a34a"
-        if v >= 70: return "#c77700"
-        if v > 0: return "#dc2626"
-        return "#94a3b8"
-    rows = "".join(
-        f"<tr style='border-bottom:1px solid #e2e8f0;'>"
-        f"<td style='padding:10px;font-weight:bold;'>📅 {_plabel(p)}</td>"
-        f"<td style='text-align:right;padding:10px;'>{p['avail']*100:.1f}%</td>"
-        f"<td style='text-align:right;padding:10px;'>{p['perf']*100:.1f}%</td>"
-        f"<td style='text-align:right;padding:10px;'>{p['qual']*100:.1f}%</td>"
-        f"<td style='text-align:right;padding:10px;'>"
-        f"<span style='background:{_oee_color(p['oee']*100)};color:white;"
-        f"padding:4px 12px;border-radius:12px;font-weight:bold;'>"
-        f"{p['oee']*100:.1f}%</span></td>"
-        f"<td style='text-align:right;padding:10px;'>{p['plan']:.0f}</td>"
-        f"<td style='text-align:right;padding:10px;font-weight:bold;'>{p['ach']:.1f}</td></tr>"
-        for p in wp)
-    st.markdown(
-        f"<div style='background:white;border-radius:12px;padding:8px;"
-        f"box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow-x:auto;'>"
-        f"<table style='width:100%;border-collapse:collapse;'>"
-        f"<tr style='background:#1f4e78;color:white;'>"
-        f"<th style='padding:12px;text-align:left;border-radius:8px 0 0 0;'>Period</th>"
-        f"<th style='padding:12px;text-align:right;'>Avail</th>"
-        f"<th style='padding:12px;text-align:right;'>Perf</th>"
-        f"<th style='padding:12px;text-align:right;'>Qual</th>"
-        f"<th style='padding:12px;text-align:right;'>OEE</th>"
-        f"<th style='padding:12px;text-align:right;'>Plan (MT)</th>"
-        f"<th style='padding:12px;text-align:right;border-radius:0 8px 0 0;'>Ach (MT)</th></tr>"
-        f"{rows}</table></div>",
-        unsafe_allow_html=True)
-else:
-    st.info("No weekly summary in the sheet yet.")
+    # ---- downtime by reason: monthly (blue) + yearly (green) ----
+    u3 = st.columns(2)
+    with u3[0]:
+        if any(v > 0 for v in mtd_reasons):
+            _mtitle = (f" — {data['month_title']}" if data.get("month_title") else "")
+            fig = go.Figure(go.Bar(
+                x=REASON_NAMES, y=[v / 60 for v in mtd_reasons], marker_color=MONTH_C,
+                text=[f"{v / 60:.1f}h" for v in mtd_reasons],
+                textposition="outside", textfont=dict(size=13, family="Arial Black")))
+            fig.update_layout(
+                title=dict(text=f"MTD Downtime by Reason (hrs){_mtitle}",
+                           font=dict(family="Arial Black", size=16)),
+                height=300, margin=dict(l=5, r=5, t=40, b=5))
+            st.plotly_chart(fig, use_container_width=True, key="u-dt-mtd")
+        else:
+            st.info("No MTD downtime-by-reason data in the sheet yet.")
+    with u3[1]:
+        _yr = [v / 60 for v in ytd_dt["reasons"]]
+        if any(v > 0 for v in _yr):
+            fig = go.Figure(go.Bar(
+                x=ytd_dt["names"], y=_yr, marker_color=YEAR_C,
+                text=[f"{v:.1f}h" for v in _yr],
+                textposition="outside", textfont=dict(size=13, family="Arial Black")))
+            fig.update_layout(
+                title=dict(text=f"YTD Downtime by Reason (hrs) — {FY}",
+                           font=dict(family="Arial Black", size=16)),
+                height=300, margin=dict(l=5, r=5, t=40, b=5))
+            st.plotly_chart(fig, use_container_width=True, key="u-dt-ytd")
+        else:
+            st.info("No YTD downtime-by-reason data in the sheet yet.")
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
