@@ -354,8 +354,6 @@ def mini_gauge(title, value, ref, color, key):
 def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
     fig = go.Figure(go.Bar(
         x=labels, y=values, marker_color=color,
-        text=[f"{v:,.1f}{suffix}" for v in values],
-        textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}: %{y:,.1f}" + suffix + "<extra></extra>"))
     kw = dict(title=dict(text=title, font=dict(size=15, family="Arial Black")),
               height=230, margin=dict(l=5, r=5, t=35, b=5))
@@ -730,14 +728,10 @@ if real_days:
     fig.add_trace(go.Bar(
         x=xs, y=[d.get("shiftA", 0) for d in real_days], name="Shift A",
         marker_color="#b45309",
-        text=[f"{d.get('shiftA', 0):.1f}" for d in real_days],
-        textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}<br>Shift A: %{y:.1f} MT<extra></extra>"))
     fig.add_trace(go.Bar(
         x=xs, y=[d.get("shiftB", 0) for d in real_days], name="Shift B",
         marker_color="#fbbf24",
-        text=[f"{d.get('shiftB', 0):.1f}" for d in real_days],
-        textposition="outside", textfont=dict(size=14, family="Arial Black"),
         hovertemplate="%{x}<br>Shift B: %{y:.1f} MT<extra></extra>"))
     fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(family="Arial Black", size=16)),
                       barmode="group", height=340,
@@ -748,16 +742,14 @@ if real_days:
     with u1[0]:
         fig = go.Figure(go.Bar(
             x=xs, y=[d["oee"] * 100 for d in real_days], marker_color=DAY_C,
-            text=[f"{d['oee'] * 100:.1f}%" for d in real_days],
-            textposition="outside", textfont=dict(size=14, family="Arial Black")))
+            hovertemplate="%{x}: %{y:.1f}%<extra></extra>"))
         fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-oee")
     with u1[1]:
         fig = go.Figure(go.Bar(
             x=xs, y=[d["ach"] for d in real_days], marker_color=DAY_C,
-            text=[f"{d['ach']:.1f}" for d in real_days],
-            textposition="outside", textfont=dict(size=14, family="Arial Black")))
+            hovertemplate="%{x}: %{y:.1f} MT<extra></extra>"))
         fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-prod")
@@ -786,8 +778,6 @@ if real_days:
             _hover.append(_t)
         fig = go.Figure(go.Bar(
             x=dt_xs, y=[d["dt"] / 60 for d in dt_days], marker_color=RED,
-            text=[f"{d['dt'] / 60:.1f}h" for d in dt_days],
-            textposition="outside", textfont=dict(size=14, family="Arial Black"),
             hovertext=_hover, hoverinfo="text"))
         fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
@@ -864,13 +854,9 @@ if _camp_rows:
     fig = go.Figure()
     fig.add_bar(x=_clabs, y=_ct, name="Target",
                 marker_color="#93c5fd",
-                text=[f"{v:.0f}" for v in _ct], textposition="outside",
-                textfont=dict(size=11),
                 hovertemplate="%{x}<br>Target: %{y:.1f} MT<extra></extra>")
     fig.add_bar(x=_clabs, y=_ca, name="Achieved",
                 marker_color="#1f4e78",
-                text=[f"{v:.0f} ({p:.0f}%)" for v, p in zip(_ca, _cp)],
-                textposition="outside", textfont=dict(size=11),
                 hovertemplate="%{x}<br>Achieved: %{y:.1f} MT<extra></extra>")
     fig.update_layout(
         title=dict(text="Campaign-wise Target vs Achieved (MT)",
