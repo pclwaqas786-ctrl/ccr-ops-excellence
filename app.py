@@ -48,9 +48,12 @@ def fetch_sheet():
     rows = [list(r) + [None] * (16 - len(r)) for r in values]
     mt = d.get("month_tab") or {}
     yr = d.get("yearly") or {}
+    amt = d.get("all_month_tabs") or {}
     return {"fetched_at": fetched, "rows": rows,
             "month_tab": mt.get("values", []) or [],
             "month_title": mt.get("title", "") or "",
+            "all_month_tabs": {k: (v.get("values", []) or [])
+                               for k, v in amt.items()},
             "yearly": yr.get("values", []) or []}
 
 
@@ -203,6 +206,53 @@ def parse_yearly(values):
             for i in range(7):
                 sums[i] += num(r[13 + i])
     return {"names": names, "reasons": sums}
+
+
+def detect_campaigns(values, min_gap=3):
+    """Detect production campaigns from a monthly tab.
+    A campaign = consecutive days with Achieved > 0. A gap of min_gap+
+    zero-days ends the campaign; the next production day starts a new one.
+    Returns list of dicts: {n, d0, d1, ndays, target, achieved}."""
+    days = []
+    for idx, r in enumerate(values[1:], start=2):
+        r = list(r) + [None] * 24
+        lab = str(r[0] or "").strip()
+        if lab.lower() == "monthly":
+            break  # monthly total row
+        if not lab:
+            continue
+        day_no = idx - 1  # row 2 = day 1
+        days.append((day_no, num(r[1]), num(r[2])))
+    camps, cur, gap = [], [], 0
+    for d, t, a in days:
+        if a > 0:
+            if gap >= min_gap and cur:
+                camps.append(cur)
+                cur = []
+            gap = 0
+            cur.append((d, t, a))
+        else:
+            gap += 1
+    if cur:
+        camps.append(cur)
+    out = []
+    for ci, c in enumerate(camps, start=1):
+        out.append({"n": ci, "d0": c[0][0], "d1": c[-1][0],
+                    "ndays": len(c),
+                    "target": sum(x[1] for x in c),
+                    "achieved": sum(x[2] for x in c)})
+    return out
+
+
+def month_sort_key(title):
+    m = re.match(r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+                 r"\s*-?\s*(\d{2,4})$", str(title).strip(), re.I)
+    if not m:
+        return (0, 0)
+    yy = int(m.group(2))
+    if yy < 100:
+        yy += 2000
+    return (yy, MON[m.group(1).lower()])
 
 
 def pct(x):
@@ -763,6 +813,28 @@ if real_days:
         _reason_chart(f"YTD Downtime by Reason (hrs) — {FY}",
                       ytd_dt["names"], [v / 60 for v in ytd_dt["reasons"]],
                       YEAR_C, "u-dt-ytd")
+
+# ================= CAMPAIGN SUMMARY =================
+st.markdown('<div class="section-band" style="background:linear-gradient(135deg,#1f4e78,#3b82c4);">Campaign Summary</div>', unsafe_allow_html=True)
+st.caption("Auto-detected: musalsal production days = ek campaign · 3+ din ka gap (No Plan) = nayi campaign shuru.")
+
+_amt = data.get("all_month_tabs", {})
+_camp_rows = []
+for _title in sorted(_amt.keys(), key=month_sort_key):
+    for _c in detect_campaigns(_amt[_title]):
+        _ap = (_c["achieved"] / _c["target"] * 100) if _c["target"] > 0 else 0.0
+        _camp_rows.append({
+            "Month": _title,
+            "Campaign": _c["n"],
+            "Days": f"{_c['d0']}–{_c['d1']} ({_c['ndays']}d)",
+            "Target (MT)": round(_c["target"], 1),
+            "Achieved (MT)": round(_c["achieved"], 1),
+            "Achv %": round(_ap, 1),
+        })
+if _camp_rows:
+    st.dataframe(_camp_rows, use_container_width=True, hide_index=True)
+else:
+    st.info("Abhi tak koi campaign detect nahi hui.")
 
 st.divider()
 st.caption("Source: OEE_Data tab of the Google Sheet — updates appear automatically (cached ~15 min).")
