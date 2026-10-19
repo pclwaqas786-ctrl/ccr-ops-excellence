@@ -819,9 +819,12 @@ st.caption("Auto-detected: musalsal production days = ek campaign · 3+ din ka g
 
 _amt = data.get("all_month_tabs", {})
 _camp_rows = []
+_camp_chart = []  # (label, target, achieved)
 for _title in sorted(_amt.keys(), key=month_sort_key):
+    _mlab = _title.replace(" ", "")
     for _c in detect_campaigns(_amt[_title]):
         _ap = (_c["achieved"] / _c["target"] * 100) if _c["target"] > 0 else 0.0
+        _lab = f"{_mlab} C{_c['n']}"
         _camp_rows.append({
             "Month": _title,
             "Campaign": _c["n"],
@@ -830,8 +833,35 @@ for _title in sorted(_amt.keys(), key=month_sort_key):
             "Achieved (MT)": round(_c["achieved"], 1),
             "Achv %": round(_ap, 1),
         })
+        _camp_chart.append((_lab, round(_c["target"], 1),
+                            round(_c["achieved"], 1), round(_ap, 1)))
 if _camp_rows:
     st.dataframe(_camp_rows, use_container_width=True, hide_index=True)
+    # Small Target vs Achieved bar chart per campaign
+    _clabs = [c[0] for c in _camp_chart]
+    _ct = [c[1] for c in _camp_chart]
+    _ca = [c[2] for c in _camp_chart]
+    _cp = [c[3] for c in _camp_chart]
+    fig = go.Figure()
+    fig.add_bar(x=_clabs, y=_ct, name="Target",
+                marker_color="#93c5fd",
+                text=[f"{v:.0f}" for v in _ct], textposition="outside",
+                textfont=dict(size=11),
+                hovertemplate="%{x}<br>Target: %{y:.1f} MT<extra></extra>")
+    fig.add_bar(x=_clabs, y=_ca, name="Achieved",
+                marker_color="#1f4e78",
+                text=[f"{v:.0f} ({p:.0f}%)" for v, p in zip(_ca, _cp)],
+                textposition="outside", textfont=dict(size=11),
+                hovertemplate="%{x}<br>Achieved: %{y:.1f} MT<extra></extra>")
+    fig.update_layout(
+        title=dict(text="Campaign-wise Target vs Achieved (MT)",
+                   font=dict(family="Arial Black", size=15)),
+        barmode="group", height=320,
+        margin=dict(l=5, r=5, t=45, b=5),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                    xanchor="right", x=1),
+        xaxis=dict(tickangle=-30))
+    st.plotly_chart(fig, use_container_width=True, key="camp-chart")
 else:
     st.info("Abhi tak koi campaign detect nahi hui.")
 
