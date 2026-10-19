@@ -184,6 +184,35 @@ def parse_month_tab(values):
     return out
 
 
+def downtime_details(month_values):
+    """Per-reason downtime with day-wise summary texts.
+    Returns [{name, hours, items: [(date_str, summary, hrs), ...]}],
+    biggest reason first, zero reasons hidden."""
+    parsed = parse_month_tab(month_values)
+    out = [{"name": n, "hours": 0.0, "items": []} for n in REASON_NAMES]
+    for d in parsed:
+        ds = d["date"].strftime("%d-%b")
+        for i, mins in enumerate(d["reasons"]):
+            if mins > 0:
+                h = mins / 60.0
+                out[i]["hours"] += h
+                out[i]["items"].append((ds, d["summary"], h))
+    return sorted([o for o in out if o["hours"] > 0.05],
+                  key=lambda x: x["hours"], reverse=True)
+
+
+def ytd_downtime_details(all_tabs):
+    """Aggregate downtime_details across all monthly tabs (Jul-now)."""
+    agg = {}
+    for title in sorted(all_tabs.keys(), key=month_sort_key):
+        for det in downtime_details(all_tabs[title]):
+            a = agg.setdefault(det["name"],
+                               {"name": det["name"], "hours": 0.0, "items": []})
+            a["hours"] += det["hours"]
+            a["items"].extend(det["items"])
+    return sorted(agg.values(), key=lambda x: x["hours"], reverse=True)
+
+
 def parse_yearly(values):
     """Yearly tab: YTD downtime-by-reason minutes summed over completed
     month rows (ignores the sheet's own Total row)."""
@@ -732,7 +761,7 @@ if real_days:
         fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-prod")
-    u2 = st.columns(2)
+    u2 = st.columns(1)
     with u2[0]:
         # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
         dt_days = [d for d in real_days if d["ach"] > 0]
@@ -747,72 +776,42 @@ if real_days:
         npd_count = len(real_days) - len(dt_days)
         if npd_count > 0:
             st.caption(f"ℹ️ {npd_count} NPD day(s) excluded (no production — not downtime)")
-    with u2[1]:
-        by_oee = sorted(real_days, key=lambda d: d["oee"], reverse=True)
-        best = by_oee[:3]
-        worst = by_oee[-3:][::-1]
-        medals = ["🥇", "🥈", "🥉"]
-        best_cards = "".join(
-            f"<div style='background:linear-gradient(135deg,#16a34a,#22c55e);"
-            f"color:white;border-radius:10px;padding:10px 14px;margin:6px 0;"
-            f"display:flex;justify-content:space-between;align-items:center;'>"
-            f"<span style='font-size:18px;'>{medals[i]} <b>{d['date'].strftime('%d-%b')}</b></span>"
-            f"<span><b>{d['oee']*100:.1f}%</b> OEE · {d['ach']:.1f} MT</span></div>"
-            for i, d in enumerate(best))
-        worst_cards = "".join(
-            f"<div style='background:linear-gradient(135deg,#dc2626,#ef4444);"
-            f"color:white;border-radius:10px;padding:10px 14px;margin:6px 0;"
-            f"display:flex;justify-content:space-between;align-items:center;'>"
-            f"<span style='font-size:18px;'>⚠️ <b>{d['date'].strftime('%d-%b')}</b></span>"
-            f"<span><b>{d['oee']*100:.1f}%</b> OEE · {d['ach']:.1f} MT</span></div>"
-            for d in worst)
-        st.markdown(
-            f"<div style='font-size:15px;font-weight:bold;margin-bottom:4px;'>"
-            f"🏆 Best 3 Days (by OEE)</div>{best_cards}",
-            unsafe_allow_html=True)
-        st.markdown(
-            f"<div style='font-size:15px;font-weight:bold;margin:12px 0 4px;'>"
-            f"📉 Weakest 3 Days (by OEE)</div>{worst_cards}",
-            unsafe_allow_html=True)
-        st.caption("Single CCR line — day-wise ranking shown instead of machine-wise.")
     # ---- downtime by reason: monthly (blue) + yearly (green) ----
-    # Horizontal bars, biggest reason on top, zero reasons hidden — taake
-    # ek nazar me samajh aye plant KYUN ruka.
-    def _reason_chart(title, names, hours, color, key):
-        pairs = sorted(((n, h) for n, h in zip(names, hours) if h > 0.05),
-                       key=lambda x: x[1], reverse=True)
-        if not pairs:
+    # Downtime detail: wording with day-wise summaries (no bare bars).
+    # Each reason expandable to show exactly what happened which day.
+    def _reason_detail(title, details, color):
+        st.markdown(
+            f"<div style='font-size:15px;font-weight:bold;margin-bottom:4px;"
+            f"color:{color};'>{title}</div>",
+            unsafe_allow_html=True)
+        if not details:
             st.info("No downtime recorded in this period.")
             return
-        top_n, top_h = pairs[0]
+        top = details[0]
         st.markdown(
-            f"<div style='font-size:13px;color:#475569;margin:2px 0 4px 0;'>"
-            f"&#128736; Sab se bara reason: <b>{top_n}</b> &mdash; "
-            f"<b>{top_h:.1f} hrs</b></div>",
+            f"<div style='font-size:13px;color:#475569;margin:2px 0 8px 0;'>"
+            f"&#128736; Sab se bara reason: <b>{top['name']}</b> &mdash; "
+            f"<b>{top['hours']:.1f} hrs</b></div>",
             unsafe_allow_html=True)
-        fig = go.Figure(go.Bar(
-            x=[h for _, h in pairs], y=[n for n, _ in pairs],
-            orientation="h", marker_color=color,
-            text=[f"{h:.1f}h" for _, h in pairs],
-            textposition="outside", textfont=dict(size=13, family="Arial Black"),
-            hovertemplate="%{y}: %{x:.1f} hrs<extra></extra>"))
-        fig.update_layout(
-            title=dict(text=title, font=dict(family="Arial Black", size=16)),
-            height=max(230, 62 * len(pairs) + 90),
-            margin=dict(l=5, r=5, t=40, b=5),
-            yaxis=dict(autorange="reversed"))
-        st.plotly_chart(fig, use_container_width=True, key=key)
+        for det in details:
+            with st.expander(f"{det['name']} — {det['hours']:.1f} hrs",
+                             expanded=False):
+                for ds, summ, h in det["items"]:
+                    txt = f"• <b>{ds}</b> ({h:.1f}h)"
+                    if summ:
+                        txt += f": {summ}"
+                    st.markdown(txt, unsafe_allow_html=True)
 
-    u3 = st.columns(2)
+    u3 = st.columns(1)
     with u3[0]:
         _mtitle = (f" — {data['month_title']}" if data.get("month_title") else "")
-        _reason_chart(f"MTD Downtime by Reason (hrs){_mtitle}",
-                      REASON_NAMES, [v / 60 for v in mtd_reasons],
-                      MONTH_C, "u-dt-mtd")
-    with u3[1]:
-        _reason_chart(f"YTD Downtime by Reason (hrs) — {FY}",
-                      ytd_dt["names"], [v / 60 for v in ytd_dt["reasons"]],
-                      YEAR_C, "u-dt-ytd")
+        _reason_detail(f"MTD Downtime by Reason{_mtitle}",
+                       downtime_details(data.get("month_tab", [])),
+                       MONTH_C)
+        st.markdown("<br>", unsafe_allow_html=True)
+        _reason_detail(f"YTD Downtime by Reason — {FY}",
+                       ytd_downtime_details(data.get("all_month_tabs", {})),
+                       YEAR_C)
 
 # ================= CAMPAIGN SUMMARY =================
 st.markdown('<div class="section-band" style="background:linear-gradient(135deg,#1f4e78,#3b82c4);">Campaign Summary</div>', unsafe_allow_html=True)
