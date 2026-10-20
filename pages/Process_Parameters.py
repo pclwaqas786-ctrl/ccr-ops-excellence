@@ -175,5 +175,5 @@ with st.expander("Per-coil data (Process sheet)"):
             return "background-color:#fee2e2;color:#b91c1c;font-weight:700" if (x < 780 or x > 820) else ""
         _cb = pd.to_numeric(show["castbar"], errors="coerce")
         _n_out = int(((_cb < 780) | (_cb > 820)).sum())
-        st.caption(f"Cast Bar SV: 800 ±20 (780-820) — is view me {_n_out} coil(s) SV se bahir hain (red). Baqi printed SVs: SF 1200 ±50, HF 1120-1150, Tundish 1130 ±20 (register me ye teen '-' rehte hain).")
+        st.caption(f"Cast Bar SV: 800 ±20 (780-820) — {_n_out} coil(s) in this view are outside the SV (shown in red). Other printed SVs: SF 1200 ±50, HF 1120-1150, Tundish 1130 ±20 (these three are recorded as '-' in the register).")
         st.dataframe(show.style.map(_sv_red, subset=["castbar"]), use_container_width=True, hide_index=True)
