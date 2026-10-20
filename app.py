@@ -409,7 +409,12 @@ Copper Casting &amp; Rolling Plant &mdash; Daily OEE, Production &amp; Downtime 
 """, unsafe_allow_html=True)
 
 try:
-    data = fetch_sheet(st.session_state.get("_buster"))
+    import time as _t
+    # 15-min time bucket in the URL: the GitHub CDN can serve a stale cached
+    # data.json for minutes; a fresh bucketed URL each TTL window forces the
+    # CDN to fetch the current file from origin.
+    _bucket = str(int(_t.time() // 900) * 900)
+    data = fetch_sheet(st.session_state.get("_buster") or _bucket)
 except Exception as e:
     st.error("Could not load data from the sheet. Please press Refresh / Rerun. "
              f"({type(e).__name__})")
