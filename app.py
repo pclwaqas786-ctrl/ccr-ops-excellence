@@ -862,6 +862,25 @@ if real_days:
             f"<div style='font-size:15px;font-weight:bold;color:#b91c1c;"
             f"margin:2px 0 2px 0;'>Total Downtime: {_total_dt:.1f} hrs</div>",
             unsafe_allow_html=True)
+        # Reason-wise bar chart (largest first)
+        _fig = go.Figure(go.Bar(
+            x=[d["hours"] for d in details],
+            y=[d["name"] for d in details],
+            orientation="h",
+            marker_color=color,
+            text=[f"{d['hours']:.1f}" for d in details],
+            textposition="outside",
+            textfont=dict(size=11, color="#334155"),
+            cliponaxis=False,
+            hovertemplate="%{y}: %{x:.1f} hrs<extra></extra>"))
+        _fig.update_layout(
+            height=max(150, 52 * len(details) + 40),
+            margin=dict(l=5, r=40, t=10, b=5),
+            xaxis_title="Downtime (hrs)",
+            yaxis=dict(autorange="reversed"))
+        st.plotly_chart(_fig, use_container_width=True,
+                        key=f"dtchart-{title[:20]}-{color}",
+                        config={'displayModeBar': False})
         top = details[0]
         st.markdown(
             f"<div style='font-size:13px;color:#475569;margin:2px 0 8px 0;'>"
