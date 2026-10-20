@@ -167,4 +167,13 @@ with st.expander("Per-coil data (Process sheet)"):
             ["date", "shift", "supervisor", "coil", "weight_kg", "time",
              "castbar", "speed", "cc_in_p", "cc_out_t", "rm", "em_t", "q_t", "remarks"]]
         show["date"] = show["date"].dt.strftime("%Y-%m-%d")
-        st.dataframe(show, use_container_width=True, hide_index=True)
+        def _sv_red(v):
+            try:
+                x = float(v)
+            except (TypeError, ValueError):
+                return ""
+            return "background-color:#fee2e2;color:#b91c1c;font-weight:700" if (x < 780 or x > 820) else ""
+        _cb = pd.to_numeric(show["castbar"], errors="coerce")
+        _n_out = int(((_cb < 780) | (_cb > 820)).sum())
+        st.caption(f"Cast Bar SV: 800 ±20 (780-820) — is view me {_n_out} coil(s) SV se bahir hain (red). Baqi printed SVs: SF 1200 ±50, HF 1120-1150, Tundish 1130 ±20 (register me ye teen '-' rehte hain).")
+        st.dataframe(show.style.map(_sv_red, subset=["castbar"]), use_container_width=True, hide_index=True)
