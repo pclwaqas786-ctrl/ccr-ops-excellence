@@ -706,8 +706,8 @@ if last2:
             f"Total: <b>{la+lb:.1f} MT</b></div>"
             f"</div>",
             unsafe_allow_html=True)
-    s2 = st.columns(3)
-    with s2[1]:
+    s2 = st.columns(2)
+    with s2[0]:
         sa = sum(d.get("shiftA", 0) for d in M["daily"])
         sb = sum(d.get("shiftB", 0) for d in M["daily"])
         d0 = M["daily"][0]["date"].strftime("%d-%b")
@@ -722,7 +722,7 @@ if last2:
             f"</table>"
             f"<div style='font-size:12px;color:#64748b'>Sum of finalized daily entries — {d0} to {d1}</div>",
             unsafe_allow_html=True)
-    with s2[2]:
+    with s2[1]:
         # Production status: clear message like "Production Completed — Target Achieved"
         ach_pct = (L['ach'] / L['plan'] * 100 if L['plan'] else 0)
         if ach_pct >= 100:
