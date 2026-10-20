@@ -355,11 +355,18 @@ def mini_gauge(title, value, ref, color, key):
 
 
 def mini_bar(labels, values, title, color, key, suffix="%", hl=False):
+    if "%" in suffix:
+        txt = [f"{v:.0f}%" for v in values]
+    else:
+        txt = [f"{v:,.0f}" for v in values]
     fig = go.Figure(go.Bar(
         x=labels, y=values, marker_color=color,
+        text=txt, textposition="outside",
+        textfont=dict(size=11, color="#334155"),
+        cliponaxis=False,
         hovertemplate="%{x}: %{y:,.1f}" + suffix + "<extra></extra>"))
     kw = dict(title=dict(text=title, font=dict(size=15, family="Arial Black")),
-              height=230, margin=dict(l=5, r=5, t=35, b=5))
+              height=230, margin=dict(l=5, r=5, t=50, b=5))
     if hl:
         kw["shapes"] = [dict(type="rect", xref="paper", yref="paper", x0=0, y0=0,
                              x1=1, y1=1, line=dict(color="#eab308", width=3))]
@@ -769,15 +776,23 @@ if real_days:
     st.plotly_chart(fig, use_container_width=True, key="u-shift", config={'displayModeBar': False})
     u1 = st.columns(2)
     with u1[0]:
+        _oee_vals = [d["oee"] * 100 for d in real_days]
         fig = go.Figure(go.Bar(
-            x=xs, y=[d["oee"] * 100 for d in real_days], marker_color=DAY_C,
+            x=xs, y=_oee_vals, marker_color=DAY_C,
+            text=[f"{v:.0f}%" for v in _oee_vals],
+            textposition="outside", textfont=dict(size=9, color="#334155"),
+            cliponaxis=False,
             hovertemplate="%{x}: %{y:.1f}%<extra></extra>"))
         fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-oee", config={'displayModeBar': False})
     with u1[1]:
+        _prod_vals = [d["ach"] for d in real_days]
         fig = go.Figure(go.Bar(
-            x=xs, y=[d["ach"] for d in real_days], marker_color=DAY_C,
+            x=xs, y=_prod_vals, marker_color=DAY_C,
+            text=[f"{v:.0f}" for v in _prod_vals],
+            textposition="outside", textfont=dict(size=9, color="#334155"),
+            cliponaxis=False,
             hovertemplate="%{x}: %{y:.1f} MT<extra></extra>"))
         fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
@@ -805,8 +820,12 @@ if real_days:
                 if _m["summary"]:
                     _t += f"<br><i>{_m['summary']}</i>"
             _hover.append(_t)
+        _dt_vals = [d["dt"] / 60 for d in dt_days]
         fig = go.Figure(go.Bar(
-            x=dt_xs, y=[d["dt"] / 60 for d in dt_days], marker_color=RED,
+            x=dt_xs, y=_dt_vals, marker_color=RED,
+            text=[f"{v:.1f}" for v in _dt_vals],
+            textposition="outside", textfont=dict(size=9, color="#334155"),
+            cliponaxis=False,
             hovertext=_hover, hoverinfo="text"))
         fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=16)),
                           height=300, margin=dict(l=5, r=5, t=40, b=5))
@@ -883,9 +902,13 @@ if _camp_rows:
     fig = go.Figure()
     fig.add_bar(x=_clabs, y=_ct, name="Target",
                 marker_color="#93c5fd",
+                text=[f"{v:.0f}" for v in _ct], textposition="outside",
+                textfont=dict(size=10, color="#334155"), cliponaxis=False,
                 hovertemplate="%{x}<br>Target: %{y:.1f} MT<extra></extra>")
     fig.add_bar(x=_clabs, y=_ca, name="Achieved",
                 marker_color="#1f4e78",
+                text=[f"{v:.0f}" for v in _ca], textposition="outside",
+                textfont=dict(size=10, color="#334155"), cliponaxis=False,
                 hovertemplate="%{x}<br>Achieved: %{y:.1f} MT<extra></extra>")
     fig.update_layout(
         title=dict(text="Campaign-wise Target vs Achieved (MT)",
