@@ -31,9 +31,9 @@ Coil weights from Coiler Unit register (PM2-CR-609)</div></div>
 
 
 @st.cache_data(ttl=900)
-def fetch_data(buster=None):
+def fetch_json(name, buster=None):
     url = ("https://raw.githubusercontent.com/pclwaqas786-ctrl/"
-           "ccr-ops-excellence/data/process_data.json")
+           f"ccr-ops-excellence/data/{name}")
     if buster:
         url += f"?t={buster}"
     r = requests.get(url, timeout=30)
@@ -44,7 +44,11 @@ def fetch_data(buster=None):
 try:
     import time as _t
     _bucket = str(int(_t.time() // 900) * 900)
-    D = fetch_data(st.session_state.get("_pbuster") or _bucket)
+    _buster = st.session_state.get("_pbuster") or _bucket
+    man = fetch_json("process_months.json", _buster)
+    months = man.get("months", [])
+    sel = st.selectbox("Month", months, index=len(months) - 1)
+    D = fetch_json(f"process_data_{sel}.json", _buster)
 except Exception as e:
     st.error(f"Could not load process data. ({type(e).__name__})")
     st.stop()
@@ -60,10 +64,8 @@ for df in (proc, coil):
         df["date"] = pd.to_datetime(df["date"])
         df["month"] = df["date"].dt.strftime("%Y-%m")
 
-months = sorted(set(proc["month"].tolist()) | set(coil["month"].tolist()))
-sel = st.selectbox("Month", months, index=len(months) - 1)
-p = proc[proc["month"] == sel] if not proc.empty else proc
-c = coil[coil["month"] == sel] if not coil.empty else coil
+p = proc
+c = coil
 
 def kpi_card(col, lbl, val, note="", ac=BLUE):
     with col:
@@ -144,9 +146,8 @@ if not c.empty:
 
 # ---- cross-check vs main dashboard ----
 st.markdown("### Cross-check vs Main Dashboard")
-xc = (D.get("crosscheck") or {}).get(sel)
-if xc:
-    main_mt = xc.get("main_dashboard_mt", 0)
+main_mt = D.get("main_dashboard_mt")
+if main_mt:
     diff = total_mt - main_mt
     st.markdown(
         f"Is sheet ka total: **{total_mt:,.2f} MT** &middot; Main dashboard: "
