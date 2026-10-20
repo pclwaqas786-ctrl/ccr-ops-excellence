@@ -761,13 +761,21 @@ if real_days:
     xs = [d["date"].strftime("%d-%b") for d in real_days]
     # daily shift-wise production (Shift A vs Shift B)
     fig = go.Figure()
+    _sa_vals = [d.get("shiftA", 0) for d in real_days]
+    _sb_vals = [d.get("shiftB", 0) for d in real_days]
     fig.add_trace(go.Bar(
-        x=xs, y=[d.get("shiftA", 0) for d in real_days], name="Shift A",
+        x=xs, y=_sa_vals, name="Shift A",
         marker_color="#b45309",
+        text=[f"{v:.0f}" for v in _sa_vals],
+        textposition="outside", textfont=dict(size=8, color="#334155"),
+        cliponaxis=False,
         hovertemplate="%{x}<br>Shift A: %{y:.1f} MT<extra></extra>"))
     fig.add_trace(go.Bar(
-        x=xs, y=[d.get("shiftB", 0) for d in real_days], name="Shift B",
+        x=xs, y=_sb_vals, name="Shift B",
         marker_color="#fbbf24",
+        text=[f"{v:.0f}" for v in _sb_vals],
+        textposition="outside", textfont=dict(size=8, color="#334155"),
+        cliponaxis=False,
         hovertemplate="%{x}<br>Shift B: %{y:.1f} MT<extra></extra>"))
     fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(family="Arial Black", size=16)),
                       barmode="group", height=340,
@@ -844,6 +852,11 @@ if real_days:
         if not details:
             st.info("No downtime recorded in this period.")
             return
+        _total_dt = sum(d["hours"] for d in details)
+        st.markdown(
+            f"<div style='font-size:15px;font-weight:bold;color:#b91c1c;"
+            f"margin:2px 0 2px 0;'>Total Downtime: {_total_dt:.1f} hrs</div>",
+            unsafe_allow_html=True)
         top = details[0]
         st.markdown(
             f"<div style='font-size:13px;color:#475569;margin:2px 0 8px 0;'>"
