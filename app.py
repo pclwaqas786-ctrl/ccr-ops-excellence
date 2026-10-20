@@ -421,6 +421,17 @@ except Exception as e:
     st.stop()
 
 M = parse_model(data["rows"])
+
+# Trim trailing no-activity days from the daily list: the monthly tab
+# pre-marks every row "Finalized" (even future/empty days), so without this
+# the "latest day" would be a future zero day and charts would run to
+# month-end. Keep days up to the last one with any real entry.
+def _day_active(d):
+    return any((d.get(k, 0) or 0) > 0
+               for k in ("plan", "ach", "avail", "run", "dt"))
+_act = [i for i, d in enumerate(M["daily"]) if _day_active(d)]
+if _act:
+    M["daily"] = M["daily"][:_act[-1] + 1]
 mtd = M["mtd"]
 
 # ---- join authoritative shift + summary data from the monthly tab ----
@@ -523,6 +534,15 @@ with tc[2]:
 st.markdown('<div class="section-band">OEE Data Analysis</div>', unsafe_allow_html=True)
 
 real_days = [d for d in M["daily"] if not d.get("ach_blank")]
+# Trim trailing no-activity days: the monthly tab pre-marks every row
+# "Finalized" (even future/empty days), so charts would otherwise run to
+# month-end with zero bars. Stop at the last day with any real entry.
+def _has_activity(d):
+    return any((d.get(k, 0) or 0) > 0
+               for k in ("plan", "ach", "avail", "run", "dt"))
+_active_idx = [i for i, d in enumerate(real_days) if _has_activity(d)]
+if _active_idx:
+    real_days = real_days[:_active_idx[-1] + 1]
 last2 = real_days[-2:] if len(real_days) >= 2 else real_days
 d2lbl = [d["date"].strftime("%d-%b") for d in last2]
 # last 2 months with production (for MTD comparison bars)
