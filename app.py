@@ -632,10 +632,28 @@ st.markdown('<div class="section-band" style="background:linear-gradient(135deg,
 if last2:
     L = last2[-1]
     st.caption(f"Latest finalized day: {L['date'].strftime('%d-%b-%Y')}")
-    # losses time (template: "only add losses time")
-    kpi_card("Losses Time (24 Hr)", f"{L['dt'] / 60:.1f}",
-             f"hrs downtime · run {L['run'] / 60:.1f} hrs / available {L['avail'] / 60:.1f} hrs",
-             "#b91c1c")
+    # Day KPI cards row — fills the 24 Hrs Summary header area
+    _dc = st.columns(3)
+    with _dc[0]:
+        kpi_card("Production (24 Hr)", f"{L['ach']:.1f} MT",
+                 f"Plan {L['plan']:.1f} MT", DAY_C)
+    with _dc[1]:
+        kpi_card("OEE (24 Hr)", f"{L['oee'] * 100:.1f}%",
+                 "Overall Equipment Effectiveness", DAY_C)
+    with _dc[2]:
+        kpi_card("Availability", f"{L['availP'] * 100:.1f}%",
+                 f"Run {L['run'] / 60:.1f} hrs / Avail {L['avail'] / 60:.1f} hrs",
+                 DAY_C)
+    _dc2 = st.columns(3)
+    with _dc2[0]:
+        kpi_card("Performance", f"{L['perfP'] * 100:.1f}%",
+                 "Speed vs ideal rate", DAY_C)
+    with _dc2[1]:
+        kpi_card("Quality", f"{L['qualP'] * 100:.1f}%",
+                 f"Good length {L['good']:.1f} MT", DAY_C)
+    with _dc2[2]:
+        kpi_card("Losses Time (24 Hr)", f"{L['dt'] / 60:.1f} hrs",
+                 f"Downtime · Run {L['run'] / 60:.1f} hrs", "#b91c1c")
     s1 = st.columns(2)
     with s1[0]:
         sa = sum(d.get("shiftA", 0) for d in M["daily"])
