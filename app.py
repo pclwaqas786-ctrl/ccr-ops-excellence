@@ -583,79 +583,92 @@ def _oee_gauges(prefix, pct_vals, pct_refs, prod_labels, prod_vals,
         mini_bar([ton_label], [ton_val], f"{prefix} Tonnage", AMBER,
                  keys[5], suffix=" MT", hl=True)
 
-# ---- 24HR row (amber = day) ----
-_period_pill("24 HR", DAY_C)
-if last2:
-    d2dates = " & ".join(d["date"].strftime("%d-%b") for d in last2)
-    st.caption(f"📅 Last 2 finalized days: {d2dates}")
-    _oee_row6("24 Hr", [
-        ("bar", {"title": "24 Hr OEE", "labels": d2lbl,
-                  "values": [d["oee"]*100 for d in last2],
-                  "color": DAY_C, "key": "h24-oee", "suffix": "%"}),
-        ("bar", {"title": "24 Hr Efficiency", "labels": d2lbl,
-                  "values": [d["perfP"]*100 for d in last2],
-                  "color": DAY_C, "key": "h24-eff", "suffix": "%"}),
-        ("bar", {"title": "24 Hr Quality", "labels": d2lbl,
-                  "values": [d["qualP"]*100 for d in last2],
-                  "color": DAY_C, "key": "h24-qual", "suffix": "%"}),
-        ("bar", {"title": "24 Hr Availability", "labels": d2lbl,
-                  "values": [d["availP"]*100 for d in last2],
-                  "color": DAY_C, "key": "h24-avail", "suffix": "%"}),
-        ("bar", {"title": "24 Hr Production", "labels": d2lbl,
-                  "values": [d["ach"] for d in last2],
-                  "color": DAY_C, "key": "h24-prod", "suffix": " MT"}),
-        ("bar", {"title": "24 Hr Tonnage", "labels": d2lbl,
-                  "values": [d["ach"] for d in last2],
-                  "color": DAY_C, "key": "h24-ton", "suffix": " MT"}),
-    ])
-else:
-    st.info("No finalized daily data in the sheet yet.")
-
-
-_period_pill("MTD", MONTH_C)
+# ---- Metric rows: each metric in ONE line (24 Hr | MTD | YTD) ----
+# Layout per waqas (2026-10-23): OEE daily/monthly/yearly in one line,
+# production in one line, and so on for every metric. Colors stay with the
+# period: amber = 24 Hr, blue = MTD, green = YTD.
 _m2 = [m for m in trend2 if m["oee"] > 0]
 _m2lbl = [m["m"] for m in _m2] or ["Oct-26"]
-st.caption(f"📅 Last 2 months: {' & '.join(_m2lbl)}")
-_oee_row6("MTD", [
-    ("bar", {"title": "MTD OEE", "labels": _m2lbl,
-              "values": [m["oee"]*100 for m in _m2] or [mtd.get("oeeP",0)*100],
-              "color": MONTH_C, "key": "mtd-oee", "suffix": "%"}),
-    ("bar", {"title": "MTD Efficiency", "labels": _m2lbl,
-              "values": [m["perf"]*100 for m in _m2] or [mtd.get("perfP",0)*100],
-              "color": MONTH_C, "key": "mtd-eff", "suffix": "%"}),
-    ("bar", {"title": "MTD Quality", "labels": _m2lbl,
-              "values": [m["qual"]*100 for m in _m2] or [mtd.get("qualP",0)*100],
-              "color": MONTH_C, "key": "mtd-qual", "suffix": "%"}),
-    ("bar", {"title": "MTD Availability", "labels": _m2lbl,
-              "values": [m["avail"]*100 for m in _m2] or [mtd.get("availP",0)*100],
-              "color": MONTH_C, "key": "mtd-avail", "suffix": "%"}),
-    ("bar", {"title": "MTD Production", "labels": t2lbl, "values": t2prod,
-              "color": MONTH_C, "key": "mtd-prod", "suffix": " MT"}),
-    ("bar", {"title": "MTD Tonnage", "labels": ["Oct-26"], "values": [mtd.get("ach",0)],
-              "color": MONTH_C, "key": "mtd-ton", "suffix": " MT"}),
-])
-
-
-_period_pill(f"YTD ({FY})", YEAR_C)
 _my = [m for m in trendY if m["oee"] > 0]
 _mylbl = [m["m"] for m in _my] or ["Oct-26"]
-_oee_row6("YTD", [
-    ("bar", {"title": "YTD OEE", "labels": _mylbl,
-              "values": [m["oee"]*100 for m in _my] or [mtd.get("oeeP",0)*100],
-              "color": YEAR_C, "key": "ytd-oee", "suffix": "%"}),
-    ("bar", {"title": "YTD Efficiency", "labels": _mylbl,
-              "values": [m["perf"]*100 for m in _my] or [mtd.get("perfP",0)*100],
-              "color": YEAR_C, "key": "ytd-eff", "suffix": "%"}),
-    ("bar", {"title": "YTD Quality", "labels": _mylbl,
-              "values": [m["qual"]*100 for m in _my] or [mtd.get("qualP",0)*100],
-              "color": YEAR_C, "key": "ytd-qual", "suffix": "%"}),
-    ("bar", {"title": "YTD Availability", "labels": _mylbl,
-              "values": [m["avail"]*100 for m in _my] or [mtd.get("availP",0)*100],
-              "color": YEAR_C, "key": "ytd-avail", "suffix": "%"}),
-    ("bar", {"title": "YTD Production", "labels": tylbl, "values": typrod,
-              "color": YEAR_C, "key": "ytd-prod", "suffix": " MT"}),
-    ("bar", {"title": "YTD Tonnage", "labels": [FY], "values": [ytd],
-              "color": YEAR_C, "key": "ytd-ton", "suffix": " MT"}),
+if not last2:
+    st.info("No finalized daily data in the sheet yet.")
+st.caption("🟠 24 Hr = last 2 finalized days · "
+           "🔵 MTD = last 2 months · "
+           f"🟢 YTD = FY {FY}")
+
+
+def _metric_row3(charts):
+    """One metric in ONE line: 24 Hr | MTD | YTD mini bar charts."""
+    cols = st.columns(3)
+    for col, a in zip(cols, charts):
+        with col:
+            mini_bar(a["labels"], a["values"], a["title"], a["color"],
+                     a["key"], suffix=a.get("suffix", ""))
+
+
+_metric_row3([
+    {"title": "24 Hr OEE", "labels": d2lbl or ["—"],
+     "values": [d["oee"]*100 for d in last2] or [0],
+     "color": DAY_C, "key": "h24-oee", "suffix": "%"},
+    {"title": "MTD OEE", "labels": _m2lbl,
+     "values": [m["oee"]*100 for m in _m2] or [mtd.get("oeeP", 0)*100],
+     "color": MONTH_C, "key": "mtd-oee", "suffix": "%"},
+    {"title": "YTD OEE", "labels": _mylbl,
+     "values": [m["oee"]*100 for m in _my] or [mtd.get("oeeP", 0)*100],
+     "color": YEAR_C, "key": "ytd-oee", "suffix": "%"},
+])
+_metric_row3([
+    {"title": "24 Hr Efficiency", "labels": d2lbl or ["—"],
+     "values": [d["perfP"]*100 for d in last2] or [0],
+     "color": DAY_C, "key": "h24-eff", "suffix": "%"},
+    {"title": "MTD Efficiency", "labels": _m2lbl,
+     "values": [m["perf"]*100 for m in _m2] or [mtd.get("perfP", 0)*100],
+     "color": MONTH_C, "key": "mtd-eff", "suffix": "%"},
+    {"title": "YTD Efficiency", "labels": _mylbl,
+     "values": [m["perf"]*100 for m in _my] or [mtd.get("perfP", 0)*100],
+     "color": YEAR_C, "key": "ytd-eff", "suffix": "%"},
+])
+_metric_row3([
+    {"title": "24 Hr Quality", "labels": d2lbl or ["—"],
+     "values": [d["qualP"]*100 for d in last2] or [0],
+     "color": DAY_C, "key": "h24-qual", "suffix": "%"},
+    {"title": "MTD Quality", "labels": _m2lbl,
+     "values": [m["qual"]*100 for m in _m2] or [mtd.get("qualP", 0)*100],
+     "color": MONTH_C, "key": "mtd-qual", "suffix": "%"},
+    {"title": "YTD Quality", "labels": _mylbl,
+     "values": [m["qual"]*100 for m in _my] or [mtd.get("qualP", 0)*100],
+     "color": YEAR_C, "key": "ytd-qual", "suffix": "%"},
+])
+_metric_row3([
+    {"title": "24 Hr Availability", "labels": d2lbl or ["—"],
+     "values": [d["availP"]*100 for d in last2] or [0],
+     "color": DAY_C, "key": "h24-avail", "suffix": "%"},
+    {"title": "MTD Availability", "labels": _m2lbl,
+     "values": [m["avail"]*100 for m in _m2] or [mtd.get("availP", 0)*100],
+     "color": MONTH_C, "key": "mtd-avail", "suffix": "%"},
+    {"title": "YTD Availability", "labels": _mylbl,
+     "values": [m["avail"]*100 for m in _my] or [mtd.get("availP", 0)*100],
+     "color": YEAR_C, "key": "ytd-avail", "suffix": "%"},
+])
+_metric_row3([
+    {"title": "24 Hr Production", "labels": d2lbl or ["—"],
+     "values": [d["ach"] for d in last2] or [0],
+     "color": DAY_C, "key": "h24-prod", "suffix": " MT"},
+    {"title": "MTD Production", "labels": t2lbl, "values": t2prod,
+     "color": MONTH_C, "key": "mtd-prod", "suffix": " MT"},
+    {"title": "YTD Production", "labels": tylbl, "values": typrod,
+     "color": YEAR_C, "key": "ytd-prod", "suffix": " MT"},
+])
+_metric_row3([
+    {"title": "24 Hr Tonnage", "labels": d2lbl or ["—"],
+     "values": [d["ach"] for d in last2] or [0],
+     "color": DAY_C, "key": "h24-ton", "suffix": " MT"},
+    {"title": "MTD Tonnage", "labels": ["Oct-26"],
+     "values": [mtd.get("ach", 0)],
+     "color": MONTH_C, "key": "mtd-ton", "suffix": " MT"},
+    {"title": "YTD Tonnage", "labels": [FY], "values": [ytd],
+     "color": YEAR_C, "key": "ytd-ton", "suffix": " MT"},
 ])
 
 
@@ -807,7 +820,7 @@ if real_days:
                       margin=dict(l=5, r=5, t=40, b=5),
                       legend=dict(orientation="h", y=1.08))
     st.plotly_chart(fig, use_container_width=True, key="u-shift", config={'displayModeBar': False})
-    u1 = st.columns(3)
+    u1 = st.columns(2)
     with u1[0]:
         _oee_vals = [d["oee"] * 100 for d in real_days]
         fig = go.Figure(go.Bar(
@@ -830,42 +843,7 @@ if real_days:
         fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=13)),
                           height=260, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-prod", config={'displayModeBar': False})
-    with u1[2]:
-        # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
-        dt_days = [d for d in real_days if d["ach"] > 0]
-        dt_xs = [d["date"].strftime("%d-%b") for d in dt_days]
-        # Hover: show reason breakdown + summary text from the monthly tab
-        _mt_by_date = {d["date"].strftime("%Y-%m-%d"): d
-                       for d in parse_month_tab(data.get("month_tab", []))}
-        _hover = []
-        for d in dt_days:
-            _dk = d["date"].strftime("%Y-%m-%d")
-            _m = _mt_by_date.get(_dk)
-            _hrs = d["dt"] / 60
-            _t = (f"<b>{d['date'].strftime('%d-%b')}</b>"
-                  f"<br>Downtime: {_hrs:.1f} hrs")
-            if _m:
-                _parts = [f"{REASON_NAMES[i]}: {mins/60:.1f}h"
-                          for i, mins in enumerate(_m["reasons"]) if mins > 0]
-                if _parts:
-                    _t += "<br>" + "<br>".join(_parts)
-                if _m["summary"]:
-                    _t += f"<br><i>{_m['summary']}</i>"
-            _hover.append(_t)
-        _dt_vals = [d["dt"] / 60 for d in dt_days]
-        fig = go.Figure(go.Bar(
-            x=dt_xs, y=_dt_vals, marker_color=RED,
-            text=[f"{v:.1f}" for v in _dt_vals],
-            textposition="outside", textfont=dict(size=8, color="#334155"),
-            cliponaxis=False,
-            hovertext=_hover, hoverinfo="text"))
-        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=13)),
-                          height=260, margin=dict(l=5, r=5, t=40, b=5))
-        st.plotly_chart(fig, use_container_width=True, key="u-dt", config={'displayModeBar': False})
-        npd_count = len(real_days) - len(dt_days)
-        if npd_count > 0:
-            st.caption(f"ℹ️ {npd_count} NPD day(s) excluded (no production — not downtime)")
-    # ---- downtime by reason: monthly (blue) + yearly (green) ----
+    # ---- downtime in ONE line: daily (red) | MTD by reason (blue) | YTD by reason (green) ----
     # Downtime detail: wording with day-wise summaries (no bare bars).
     # Each reason expandable to show exactly what happened which day.
     def _reason_detail(title, details, color):
@@ -916,13 +894,48 @@ if real_days:
                         txt += f": {summ}"
                     st.markdown(txt, unsafe_allow_html=True)
 
-    u3 = st.columns(2)
+    u3 = st.columns(3)
     with u3[0]:
+        # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
+        dt_days = [d for d in real_days if d["ach"] > 0]
+        dt_xs = [d["date"].strftime("%d-%b") for d in dt_days]
+        # Hover: show reason breakdown + summary text from the monthly tab
+        _mt_by_date = {d["date"].strftime("%Y-%m-%d"): d
+                       for d in parse_month_tab(data.get("month_tab", []))}
+        _hover = []
+        for d in dt_days:
+            _dk = d["date"].strftime("%Y-%m-%d")
+            _m = _mt_by_date.get(_dk)
+            _hrs = d["dt"] / 60
+            _t = (f"<b>{d['date'].strftime('%d-%b')}</b>"
+                  f"<br>Downtime: {_hrs:.1f} hrs")
+            if _m:
+                _parts = [f"{REASON_NAMES[i]}: {mins/60:.1f}h"
+                          for i, mins in enumerate(_m["reasons"]) if mins > 0]
+                if _parts:
+                    _t += "<br>" + "<br>".join(_parts)
+                if _m["summary"]:
+                    _t += f"<br><i>{_m['summary']}</i>"
+            _hover.append(_t)
+        _dt_vals = [d["dt"] / 60 for d in dt_days]
+        fig = go.Figure(go.Bar(
+            x=dt_xs, y=_dt_vals, marker_color=RED,
+            text=[f"{v:.1f}" for v in _dt_vals],
+            textposition="outside", textfont=dict(size=8, color="#334155"),
+            cliponaxis=False,
+            hovertext=_hover, hoverinfo="text"))
+        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=13)),
+                          height=260, margin=dict(l=5, r=5, t=40, b=5))
+        st.plotly_chart(fig, use_container_width=True, key="u-dt", config={'displayModeBar': False})
+        npd_count = len(real_days) - len(dt_days)
+        if npd_count > 0:
+            st.caption(f"ℹ️ {npd_count} NPD day(s) excluded (no production — not downtime)")
+    with u3[1]:
         _mtitle = (f" — {data['month_title']}" if data.get("month_title") else "")
         _reason_detail(f"MTD Downtime by Reason{_mtitle}",
                        downtime_details(data.get("month_tab", [])),
                        MONTH_C)
-    with u3[1]:
+    with u3[2]:
         _reason_detail(f"YTD Downtime by Reason — {FY}",
                        ytd_downtime_details(data.get("all_month_tabs", {})),
                        YEAR_C)
