@@ -807,31 +807,30 @@ if real_days:
                       margin=dict(l=5, r=5, t=40, b=5),
                       legend=dict(orientation="h", y=1.08))
     st.plotly_chart(fig, use_container_width=True, key="u-shift", config={'displayModeBar': False})
-    u1 = st.columns(2)
+    u1 = st.columns(3)
     with u1[0]:
         _oee_vals = [d["oee"] * 100 for d in real_days]
         fig = go.Figure(go.Bar(
             x=xs, y=_oee_vals, marker_color=DAY_C,
             text=[f"{v:.0f}%" for v in _oee_vals],
-            textposition="outside", textfont=dict(size=9, color="#334155"),
+            textposition="outside", textfont=dict(size=8, color="#334155"),
             cliponaxis=False,
             hovertemplate="%{x}: %{y:.1f}%<extra></extra>"))
-        fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=16)),
-                          height=300, margin=dict(l=5, r=5, t=40, b=5))
+        fig.update_layout(title=dict(text="Date-wise OEE %", font=dict(family="Arial Black", size=13)),
+                          height=260, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-oee", config={'displayModeBar': False})
     with u1[1]:
         _prod_vals = [d["ach"] for d in real_days]
         fig = go.Figure(go.Bar(
             x=xs, y=_prod_vals, marker_color=DAY_C,
             text=[f"{v:.0f}" for v in _prod_vals],
-            textposition="outside", textfont=dict(size=9, color="#334155"),
+            textposition="outside", textfont=dict(size=8, color="#334155"),
             cliponaxis=False,
             hovertemplate="%{x}: %{y:.1f} MT<extra></extra>"))
-        fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=16)),
-                          height=300, margin=dict(l=5, r=5, t=40, b=5))
+        fig.update_layout(title=dict(text="Date-wise Production (MT)", font=dict(family="Arial Black", size=13)),
+                          height=260, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-prod", config={'displayModeBar': False})
-    u2 = st.columns(1)
-    with u2[0]:
+    with u1[2]:
         # Exclude NPD (Non-Production Days) — days with zero production are not "downtime"
         dt_days = [d for d in real_days if d["ach"] > 0]
         dt_xs = [d["date"].strftime("%d-%b") for d in dt_days]
@@ -857,11 +856,11 @@ if real_days:
         fig = go.Figure(go.Bar(
             x=dt_xs, y=_dt_vals, marker_color=RED,
             text=[f"{v:.1f}" for v in _dt_vals],
-            textposition="outside", textfont=dict(size=9, color="#334155"),
+            textposition="outside", textfont=dict(size=8, color="#334155"),
             cliponaxis=False,
             hovertext=_hover, hoverinfo="text"))
-        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=16)),
-                          height=300, margin=dict(l=5, r=5, t=40, b=5))
+        fig.update_layout(title=dict(text="Date-wise Downtime (hrs)", font=dict(family="Arial Black", size=13)),
+                          height=260, margin=dict(l=5, r=5, t=40, b=5))
         st.plotly_chart(fig, use_container_width=True, key="u-dt", config={'displayModeBar': False})
         npd_count = len(real_days) - len(dt_days)
         if npd_count > 0:
@@ -897,7 +896,8 @@ if real_days:
             height=max(150, 52 * len(details) + 40),
             margin=dict(l=5, r=40, t=10, b=5),
             xaxis_title="Downtime (hrs)",
-            yaxis=dict(autorange="reversed"))
+            xaxis=dict(automargin=True),
+            yaxis=dict(autorange="reversed", automargin=True))
         st.plotly_chart(_fig, use_container_width=True,
                         key=f"dtchart-{title[:20]}-{color}",
                         config={'displayModeBar': False})
@@ -916,13 +916,13 @@ if real_days:
                         txt += f": {summ}"
                     st.markdown(txt, unsafe_allow_html=True)
 
-    u3 = st.columns(1)
+    u3 = st.columns(2)
     with u3[0]:
         _mtitle = (f" — {data['month_title']}" if data.get("month_title") else "")
         _reason_detail(f"MTD Downtime by Reason{_mtitle}",
                        downtime_details(data.get("month_tab", [])),
                        MONTH_C)
-        st.markdown("<br>", unsafe_allow_html=True)
+    with u3[1]:
         _reason_detail(f"YTD Downtime by Reason — {FY}",
                        ytd_downtime_details(data.get("all_month_tabs", {})),
                        YEAR_C)
