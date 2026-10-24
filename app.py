@@ -517,15 +517,9 @@ with tc[2]:
         _dp = _last["plan"] or 0
         _da = _last["ach"] or 0
         _pct = (_da / _dp * 100) if _dp else 0
-        _warn = None
-        if _pct < 100:
-            # reason comes from the sheet's Summary column (monthly tab)
-            _rsn = (_last.get("summary") or "").strip()
-            _warn = _rsn if _rsn else "Reason not entered in the sheet yet"
         _target_card("Day Target", f"{_dp:,.1f}", f"{_da:,.1f} MT",
                      f"{_pct:.0f}% of plan \u00b7 {_last['date'].strftime('%d-%b')}",
-                     "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)",
-                     warn=_warn)
+                     "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)")
     else:
         _target_card("Day Target", "\u2014", "\u2014", "No finalized day yet",
                      "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)")
@@ -669,6 +663,25 @@ _metric_row3([
      "color": MONTH_C, "key": "mtd-ton", "suffix": " MT"},
     {"title": "YTD Tonnage", "labels": [FY], "values": [ytd],
      "color": YEAR_C, "key": "ytd-ton", "suffix": " MT"},
+])
+# Downtime row (added 2026-10-24, waqas: 24 Hr downtime was missing from
+# the metric rows — downtime only lived in the date-wise chart below).
+_ytd_dt = 0.0
+for _r in (data.get("yearly") or [])[2:]:
+    _rr = list(_r) + [None] * 20
+    if re.match(r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2,4}$",
+                str(_rr[0] or "").strip(), re.I) and \
+            (num(_rr[1]) > 0 or "complet" in str(_rr[11] or "").lower()):
+        _ytd_dt += num(_rr[12])
+_metric_row3([
+    {"title": "24 Hr Downtime", "labels": d2lbl or ["—"],
+     "values": [d["dt"] / 60 for d in last2] or [0],
+     "color": DAY_C, "key": "h24-dt", "suffix": " hrs"},
+    {"title": "MTD Downtime", "labels": [_m2lbl[-1]] if _m2lbl else ["Oct-26"],
+     "values": [mtd.get("dtHrs", 0)],
+     "color": MONTH_C, "key": "mtd-dt", "suffix": " hrs"},
+    {"title": "YTD Downtime", "labels": [FY], "values": [_ytd_dt],
+     "color": YEAR_C, "key": "ytd-dt", "suffix": " hrs"},
 ])
 
 
