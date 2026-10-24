@@ -482,7 +482,7 @@ def _target_card(title, target, achieved, pct_note, grad, warn=None):
             w = w[:157] + "..."
         warn_html = (f'<div style="font-size:12px;color:#fff;background:rgba(0,0,0,.25);'
                      f'border-radius:6px;padding:6px 8px;margin-top:8px;text-align:left;">'
-                     f"&#9888; Reason: {w}</div>")
+                     f"&#9888; {w}</div>")
     st.markdown(
         f"""<div style="background:{grad}; border-radius:10px; padding:16px 20px;
              box-shadow:0 2px 8px rgba(0,0,0,0.18); text-align:center;">
@@ -517,9 +517,16 @@ with tc[2]:
         _dp = _last["plan"] or 0
         _da = _last["ach"] or 0
         _pct = (_da / _dp * 100) if _dp else 0
+        _warn = None
+        if _pct < 100:
+            # reason text from the sheet's Summary column (monthly tab);
+            # shown WITHOUT the word "Reason" (waqas, 2026-10-24)
+            _rsn = (_last.get("summary") or "").strip()
+            _warn = _rsn if _rsn else "Not entered in the sheet yet"
         _target_card("Day Target", f"{_dp:,.1f}", f"{_da:,.1f} MT",
                      f"{_pct:.0f}% of plan \u00b7 {_last['date'].strftime('%d-%b')}",
-                     "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)")
+                     "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)",
+                     warn=_warn)
     else:
         _target_card("Day Target", "\u2014", "\u2014", "No finalized day yet",
                      "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)")
