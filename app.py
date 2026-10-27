@@ -496,12 +496,12 @@ def _target_card(title, target, achieved, pct_note, grad, warn=None):
                      f"&#9888; {w}</div>")
     st.markdown(
         f"""<div style="background:{grad}; border-radius:10px; padding:16px 20px;
-             box-shadow:0 2px 8px rgba(0,0,0,0.18); text-align:center;">
+             box-shadow:0 2px 8px rgba(0,0,0,0.18); text-align:center;
+             min-height:230px; height:100%;">
         <div style="font-size:13px; font-weight:700; color:#e8f8ef;
              letter-spacing:1px; text-transform:uppercase;">{title}</div>
         <div style="font-size:34px; font-weight:800; color:#ffffff;
              margin:4px 0;">{target}</div>
-        <div style="font-size:12px; color:#d5f5e3;">Value tons &middot; target</div>
         <div style="font-size:16px; font-weight:700; color:#ffffff; margin-top:10px;
              border-top:1px solid rgba(255,255,255,.35); padding-top:8px;">Achieved: {achieved}</div>
         <div style="font-size:12px; color:#e8f8ef;">{pct_note}</div>{warn_html}</div>""",
@@ -515,12 +515,12 @@ _last = M["daily"][-1] if M["daily"] else None
 tc = st.columns(3)
 with tc[0]:
     _yp = (_ytd_ach / tgt * 100) if tgt else 0
-    _target_card("Yearly Target", f"{tgt:,.0f}", f"{_ytd_ach:,.1f} MT",
+    _target_card("Yearly Target", f"{tgt:,.0f} MT", f"{_ytd_ach:,.1f} MT",
                  f"{_yp:.1f}% of target",
                  "linear-gradient(135deg, #0d6e3f 0%, #27ae60 100%)")
 with tc[1]:
     _mp = (_mtd_ach / _mtd_plan * 100) if _mtd_plan else 0
-    _target_card("Monthly Target", f"{_mtd_plan:,.1f}", f"{_mtd_ach:,.1f} MT",
+    _target_card("Monthly Target", f"{_mtd_plan:,.1f} MT", f"{_mtd_ach:,.1f} MT",
                  f"{_mp:.1f}% of plan",
                  "linear-gradient(135deg, #1f4e78 0%, #2e9bd5 100%)")
 with tc[2]:
@@ -534,7 +534,7 @@ with tc[2]:
             # shown WITHOUT the word "Reason" (waqas, 2026-10-24)
             _rsn = (_last.get("summary") or "").strip()
             _warn = _rsn if _rsn else "Not entered in the sheet yet"
-        _target_card("Day Target", f"{_dp:,.1f}", f"{_da:,.1f} MT",
+        _target_card("Day Target", f"{_dp:,.1f} MT", f"{_da:,.1f} MT",
                      f"{_pct:.0f}% of plan \u00b7 {_last['date'].strftime('%d-%b')}",
                      "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)",
                      warn=_warn)
