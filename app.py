@@ -28,6 +28,17 @@ DAY_C = "#f59e0b"    # 24 Hr (amber)
 MONTH_C = "#1f4e78"  # MTD (blue)
 YEAR_C = "#16a34a"   # YTD (green)
 
+# Metric-row colours (2026-10-27, waqas): ONE colour per metric row —
+# the three period charts in a row share the row's colour, so rows are
+# instantly distinguishable (the period is already in each chart title).
+ROW_OEE = "#2563eb"       # blue
+ROW_EFF = "#16a34a"       # green
+ROW_QUAL = "#7c3aed"      # purple
+ROW_AVAIL = "#0891b2"     # teal
+ROW_PROD = "#b45309"      # amber-brown
+ROW_TON = "#db2777"       # rose
+ROW_DT = "#dc2626"        # red
+
 st.set_page_config(page_title="Ops Excellence Dash Board", layout="wide")
 
 # ---------------------------------------------------------------- data ----
@@ -594,17 +605,20 @@ _my = [m for m in trendY if m["oee"] > 0]
 _mylbl = [m["m"] for m in _my] or ["Oct-26"]
 if not last2:
     st.info("No finalized daily data in the sheet yet.")
-st.caption("🟠 24 Hr = last 2 finalized days · "
-           "🔵 MTD = last 2 months · "
-           f"🟢 YTD = FY {FY}")
+st.caption("One colour per metric row · "
+           "24 Hr = last 2 finalized days · "
+           "MTD = last 2 months · "
+           f"YTD = FY {FY}")
 
 
-def _metric_row3(charts):
-    """One metric in ONE line: 24 Hr | MTD | YTD mini bar charts."""
+def _metric_row3(charts, color=None):
+    """One metric in ONE line: 24 Hr | MTD | YTD mini bar charts.
+    All three charts share the row's colour (waqas, 2026-10-27)."""
     cols = st.columns(3)
     for col, a in zip(cols, charts):
         with col:
-            mini_bar(a["labels"], a["values"], a["title"], a["color"],
+            mini_bar(a["labels"], a["values"], a["title"],
+                     color or a["color"],
                      a["key"], suffix=a.get("suffix", ""))
 
 
@@ -618,7 +632,7 @@ _metric_row3([
     {"title": "YTD OEE", "labels": _mylbl,
      "values": [m["oee"]*100 for m in _my] or [mtd.get("oeeP", 0)*100],
      "color": YEAR_C, "key": "ytd-oee", "suffix": "%"},
-])
+], ROW_OEE)
 _metric_row3([
     {"title": "24 Hr Efficiency", "labels": d2lbl or ["—"],
      "values": [d["perfP"]*100 for d in last2] or [0],
@@ -629,7 +643,7 @@ _metric_row3([
     {"title": "YTD Efficiency", "labels": _mylbl,
      "values": [m["perf"]*100 for m in _my] or [mtd.get("perfP", 0)*100],
      "color": YEAR_C, "key": "ytd-eff", "suffix": "%"},
-])
+], ROW_EFF)
 _metric_row3([
     {"title": "24 Hr Quality", "labels": d2lbl or ["—"],
      "values": [d["qualP"]*100 for d in last2] or [0],
@@ -640,7 +654,7 @@ _metric_row3([
     {"title": "YTD Quality", "labels": _mylbl,
      "values": [m["qual"]*100 for m in _my] or [mtd.get("qualP", 0)*100],
      "color": YEAR_C, "key": "ytd-qual", "suffix": "%"},
-])
+], ROW_QUAL)
 _metric_row3([
     {"title": "24 Hr Availability", "labels": d2lbl or ["—"],
      "values": [d["availP"]*100 for d in last2] or [0],
@@ -651,7 +665,7 @@ _metric_row3([
     {"title": "YTD Availability", "labels": _mylbl,
      "values": [m["avail"]*100 for m in _my] or [mtd.get("availP", 0)*100],
      "color": YEAR_C, "key": "ytd-avail", "suffix": "%"},
-])
+], ROW_AVAIL)
 _metric_row3([
     {"title": "24 Hr Production", "labels": d2lbl or ["—"],
      "values": [d["ach"] for d in last2] or [0],
@@ -660,7 +674,7 @@ _metric_row3([
      "color": MONTH_C, "key": "mtd-prod", "suffix": " MT"},
     {"title": "YTD Production", "labels": tylbl, "values": typrod,
      "color": YEAR_C, "key": "ytd-prod", "suffix": " MT"},
-])
+], ROW_PROD)
 _metric_row3([
     {"title": "24 Hr Tonnage", "labels": d2lbl or ["—"],
      "values": [d["ach"] for d in last2] or [0],
@@ -670,7 +684,7 @@ _metric_row3([
      "color": MONTH_C, "key": "mtd-ton", "suffix": " MT"},
     {"title": "YTD Tonnage", "labels": [FY], "values": [ytd],
      "color": YEAR_C, "key": "ytd-ton", "suffix": " MT"},
-])
+], ROW_TON)
 # Downtime row (added 2026-10-24, waqas: 24 Hr downtime was missing from
 # the metric rows — downtime only lived in the date-wise chart below).
 _ytd_dt = 0.0
@@ -689,7 +703,7 @@ _metric_row3([
      "color": MONTH_C, "key": "mtd-dt", "suffix": " hrs"},
     {"title": "YTD Downtime", "labels": [FY], "values": [_ytd_dt],
      "color": YEAR_C, "key": "ytd-dt", "suffix": " hrs"},
-])
+], ROW_DT)
 
 
 # ================= 24 HRS SUMMARY (amber = day) =================
