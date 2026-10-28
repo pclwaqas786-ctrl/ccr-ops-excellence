@@ -31,13 +31,13 @@ YEAR_C = "#16a34a"   # YTD (green)
 # Metric-row colours (2026-10-27, waqas): ONE colour per metric row —
 # the three period charts in a row share the row's colour, so rows are
 # instantly distinguishable (the period is already in each chart title).
-ROW_OEE = "#2563eb"       # blue
-ROW_EFF = "#16a34a"       # green
-ROW_QUAL = "#7c3aed"      # purple
-ROW_AVAIL = "#0891b2"     # teal
-ROW_PROD = "#b45309"      # amber-brown
-ROW_TON = "#db2777"       # rose
-ROW_DT = "#dc2626"        # red
+ROW_OEE = "#60a5fa"       # light blue
+ROW_EFF = "#4ade80"       # light green
+ROW_QUAL = "#a78bfa"      # light purple
+ROW_AVAIL = "#22d3ee"     # light cyan
+ROW_PROD = "#fbbf24"      # light amber
+ROW_TON = "#f472b6"       # light rose
+ROW_DT = "#f87171"        # light red
 
 st.set_page_config(page_title="Ops Excellence Dash Board", layout="wide")
 
@@ -131,7 +131,11 @@ def parse_model(rows):
                 "perfP": num(r[8]), "good": num(r[9]), "qualP": num(r[10]),
                 "oee": num(r[11]), "status": str(r[12] or ""),
                 "ach_blank": str(r[7] or "").strip() == "",
-                "shiftA": num(r[14]), "shiftB": num(r[15])})
+                # Shift split comes ONLY from the monthly-tab join below.
+                # OEE_Data cols O/P are unreliable legacy — never use them
+                # (2026-10-28: mixed O/P + month-tab sums produced the
+                # wrong 647.9 MT MTD total while the sheet said 560.8).
+                "shiftA": 0.0, "shiftB": 0.0})
             continue
         if re.match(r"^MTD TOTAL", lab, re.I):
             M["mtd"] = {"avail": num(r[2]), "dt": num(r[3]), "run": num(r[4]),
