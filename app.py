@@ -853,8 +853,10 @@ if real_days:
         textposition="outside", textfont=dict(size=8, color="#334155"),
         cliponaxis=False,
         hovertemplate="%{x}<br>Shift B: %{y:.1f} MT<extra></extra>"))
-    fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(family="Arial Black", size=16)),
-                      barmode="group", height=340,
+    # Compact size (2026-10-29, waqas): same height/title as the date-wise
+    # charts below, so the page stays short; data unchanged.
+    fig.update_layout(title=dict(text="Shift-wise Production by Day (MT)", font=dict(family="Arial Black", size=13)),
+                      barmode="group", height=260,
                       margin=dict(l=5, r=5, t=40, b=5),
                       legend=dict(orientation="h", y=1.08))
     st.plotly_chart(fig, use_container_width=True, key="u-shift", config={'displayModeBar': False})
