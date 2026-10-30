@@ -839,16 +839,18 @@ if real_days:
     fig = go.Figure()
     _sa_vals = [d.get("shiftA", 0) for d in real_days]
     _sb_vals = [d.get("shiftB", 0) for d in real_days]
+    # 2026-10-30 (waqas): Shift A/B were two similar ambers — muddy and
+    # hard to tell apart. Rich contrasting blue/orange instead.
     fig.add_trace(go.Bar(
         x=xs, y=_sa_vals, name="Shift A",
-        marker_color="#b45309",
+        marker_color="#1d4ed8",
         text=[f"{v:.0f}" for v in _sa_vals],
         textposition="outside", textfont=dict(size=8, color="#334155"),
         cliponaxis=False,
         hovertemplate="%{x}<br>Shift A: %{y:.1f} MT<extra></extra>"))
     fig.add_trace(go.Bar(
         x=xs, y=_sb_vals, name="Shift B",
-        marker_color="#fbbf24",
+        marker_color="#f97316",
         text=[f"{v:.0f}" for v in _sb_vals],
         textposition="outside", textfont=dict(size=8, color="#334155"),
         cliponaxis=False,
