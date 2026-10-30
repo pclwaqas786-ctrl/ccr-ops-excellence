@@ -469,6 +469,31 @@ for _m in month_rows:
             mtd_reasons[_i] += _m["reasons"][_i]
 ytd_dt = parse_yearly(data["yearly"])
 
+# ---- yearly-trend fix (2026-10-30, waqas: yearly card stale) ----
+# OEE_Data's "Yearly Production Trend" block froze Oct-26 at 411.8 MT
+# (production through 11-Oct) even after production resumed 24-Oct, so
+# the Yearly card showed 1904.1 instead of the true 2171.26. The Yearly
+# tab itself is correct (Oct 678.96). Override ONLY the current month's
+# trend row from the Yearly tab — history stays exactly as it was, and
+# the same freeze next month heals itself when the month rolls over.
+_ytrend = {}
+for _r in (data["yearly"] or []):
+    _r = list(_r) + [None] * 20
+    _lab = str(_r[0] or "").strip()
+    if re.match(r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2,4}$",
+                _lab, re.I):
+        _ytrend[_lab] = {"m": _lab, "prod": num(_r[1]), "cum": num(_r[2]),
+                         "oee": num(_r[10]), "avail": num(_r[6]),
+                         "perf": num(_r[7]), "qual": num(_r[9])}
+_mt = re.match(r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+               r"\s*-?\s*(\d{2,4})$", (data.get("month_title") or "").strip(), re.I)
+if _mt:
+    _cur = f"{_mt.group(1).title()}-{_mt.group(2)[-2:]}"
+    for _t in M["trend"]:
+        _y = _ytrend.get(_t["m"])
+        if _t["m"] == _cur and _y and _y["prod"] > 0:
+            _t.update(_y)
+
 
 def _period_pill(text, color):
     st.markdown(
